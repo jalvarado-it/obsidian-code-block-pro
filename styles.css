@@ -1,0 +1,65 @@
+/*
+ * Code Block Pro
+ *
+ * All selectors are scoped to the `.cbp-` prefix so themes and other plugins
+ * keep control of the rest of the interface. Colors and spacing come from
+ * Obsidian CSS variables to support light, dark, and custom themes.
+ */
+
+.cbp-block {
+	margin: var(--size-4-3) 0;
+}
+
+.cbp-block > pre {
+	margin: 0;
+	border-top-left-radius: 0;
+	border-top-right-radius: 0;
+}
+
+.cbp-toolbar {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	padding: var(--size-4-1) var(--size-4-2);
+	background-color: var(--code-background);
+	border: 1px solid var(--background-modifier-border);
+	border-bottom: none;
+	border-radius: var(--radius-s) var(--radius-s) 0 0;
+}
+
+.cbp-language {
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	line-height: 1;
+	text-transform: lowercase;
+}
+
+.cbp-copy {
+	margin-left: auto;
+	min-height: 28px;
+	padding: var(--size-4-1) var(--size-4-2);
+	border: none;
+	border-radius: var(--radius-s);
+	background-color: transparent;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	cursor: pointer;
+}
+
+.cbp-copy:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.cbp-copy:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+	.cbp-copy {
+		min-width: 44px;
+		min-height: 44px;
+	}
+}

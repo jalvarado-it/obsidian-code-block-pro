@@ -1,0 +1,9 @@
+{
+	"id": "code-block-pro",
+	"name": "Code Block Pro",
+	"version": "0.1.0",
+	"minAppVersion": "1.13.0",
+	"description": "Enhance fenced code blocks with copy buttons and language labels.",
+	"author": "Jesus Alvarado",
+	"isDesktopOnly": false
+}

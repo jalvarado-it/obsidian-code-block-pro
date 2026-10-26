@@ -1,0 +1,30 @@
+# Logs
+*.log
+npm-debug.log*
+
+# Dependency directories
+node_modules/
+
+# Build output
+main.js
+*.js.map
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Plugin data and local secrets
+data.json
+.env
+
+# Agent settings (local)
+.claude/settings.local.json
+.agents/settings.local.json

@@ -1,0 +1,36 @@
+{
+	"name": "code-block-pro",
+	"version": "0.1.0",
+	"description": "Enhance fenced code blocks with copy buttons and language labels.",
+	"main": "main.js",
+	"type": "module",
+	"scripts": {
+		"dev": "node esbuild.config.mjs",
+		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"lint": "eslint .",
+		"version": "node version-bump.mjs && git add manifest.json versions.json"
+	},
+	"keywords": [
+		"obsidian",
+		"obsidian-plugin",
+		"code-block",
+		"syntax-highlighting"
+	],
+	"author": "Jesus Alvarado",
+	"license": "MIT",
+	"engines": {
+		"node": ">=20"
+	},
+	"devDependencies": {
+		"@eslint/js": "^10.0.1",
+		"@types/node": "^24.19.2",
+		"esbuild": "^0.28.2",
+		"eslint": "^10.12.0",
+		"eslint-plugin-obsidianmd": "^0.4.2",
+		"globals": "^17.6.0",
+		"jiti": "^2.6.1",
+		"obsidian": "^1.14.4",
+		"typescript": "^5.9.3",
+		"typescript-eslint": "^8.59.1"
+	}
+}
