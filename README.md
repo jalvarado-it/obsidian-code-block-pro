@@ -7,9 +7,11 @@ fence declares one, the language name.
 
 - Copy button on each rendered code block, with screen reader feedback.
 - Language label taken from the code fence (```` ```ts ```` renders as `ts`).
+- Line numbers in reading view and Live Preview, without changing the code or
+  the copied text.
 - Works in reading view and Live Preview.
 - Theme-aware styles built on Obsidian CSS variables.
-- Both elements can be disabled independently.
+- All three elements can be disabled independently.
 
 Requires Obsidian 1.5.0 or later.
 
@@ -100,6 +102,7 @@ saving** command, then enable the plugin under **Settings → Community plugins*
 
 | Setting | Default | Description |
 | --- | --- | --- |
+| Line numbers | On | Show line numbers in a gutter. Numbered reading view blocks scroll horizontally instead of wrapping. |
 | Copy button | On | Add a button to copy the code block to the clipboard. |
 | Language label | On | Show the language declared in the code fence. |
 

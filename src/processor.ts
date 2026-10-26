@@ -5,13 +5,13 @@ const PREFIX = 'cbp';
 const PROCESSED_ATTRIBUTE = 'data-code-block-pro';
 
 /**
- * Add a toolbar above each rendered fenced code block in reading view.
+ * Add a toolbar and optional line numbers to fenced code blocks in reading view.
  *
  * Obsidian calls post-processors again on every render, so blocks are marked
- * with an attribute to keep the toolbar from being added twice.
+ * with an attribute to keep the decoration from being added twice.
  */
 export function decorateCodeBlocks(container: HTMLElement, settings: CodeBlockProSettings): void {
-	if (!settings.showCopyButton && !settings.showLanguageLabel) {
+	if (!settings.showCopyButton && !settings.showLanguageLabel && !settings.showLineNumbers) {
 		return;
 	}
 
@@ -23,10 +23,11 @@ export function decorateCodeBlocks(container: HTMLElement, settings: CodeBlockPr
 			continue;
 		}
 
+		const codeText = code.textContent ?? '';
 		const language = getLanguage(code);
-		const toolbar = createToolbar(settings, language, code.textContent ?? '');
+		const toolbar = createToolbar(settings, language, codeText);
 
-		if (!toolbar) {
+		if (!toolbar && !settings.showLineNumbers) {
 			continue;
 		}
 
@@ -34,9 +35,33 @@ export function decorateCodeBlocks(container: HTMLElement, settings: CodeBlockPr
 
 		const wrapper = parent.createDiv({ cls: `${PREFIX}-block` });
 		parent.insertBefore(wrapper, pre);
-		wrapper.appendChild(pre);
-		wrapper.insertBefore(toolbar, pre);
+
+		if (toolbar) {
+			wrapper.addClass(`${PREFIX}-has-toolbar`);
+			wrapper.appendChild(toolbar);
+		}
+
+		if (settings.showLineNumbers) {
+			wrapper.addClass(`${PREFIX}-with-line-numbers`);
+
+			const codeArea = wrapper.createDiv({ cls: `${PREFIX}-code-area` });
+			const gutter = codeArea.createDiv({
+				cls: `${PREFIX}-line-numbers`,
+				attr: { 'aria-hidden': 'true' },
+			});
+
+			gutter.setText(buildLineNumbers(codeText));
+			codeArea.appendChild(pre);
+		} else {
+			wrapper.appendChild(pre);
+		}
 	}
+}
+
+function buildLineNumbers(codeText: string): string {
+	const trimmed = codeText.endsWith('\n') ? codeText.slice(0, -1) : codeText;
+	const lineCount = Math.max(1, trimmed.split('\n').length);
+	return Array.from({ length: lineCount }, (_, index) => String(index + 1)).join('\n');
 }
 
 function getLanguage(code: HTMLElement): string {

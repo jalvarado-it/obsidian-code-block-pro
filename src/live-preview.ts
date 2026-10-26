@@ -8,6 +8,7 @@ import { createToolbar } from './toolbar';
 
 const PREFIX = 'cbp';
 const LIVE_PREVIEW_CLASS = `${PREFIX}-live-preview`;
+const LINE_NUMBERS_CLASS = `${PREFIX}-live-numbers`;
 const FENCE_OPEN_PATTERN = /^ {0,3}(`{3,}|~{3,})\s*([^\s`]*)/;
 
 interface CodeBlock {
@@ -15,15 +16,20 @@ interface CodeBlock {
 	code: string;
 }
 
+interface Range {
+	from: number;
+	to: number;
+}
+
 /** Forces a decoration rebuild after settings change. */
 export const refreshDecorations = StateEffect.define<null>();
 
 /**
- * Add the code block toolbar to Live Preview.
+ * Add the code block toolbar and line numbers to Live Preview.
  *
  * Live Preview renders fenced code blocks with CodeMirror instead of `<pre>`,
- * so reading view post-processors never see them. Block widgets must come from
- * a state field, not a view plugin.
+ * so reading view post-processors never see them. Toolbars use block widgets
+ * from a state field; line numbers use line decorations from a view plugin.
  */
 export function createLivePreviewExtension(
 	getSettings: () => CodeBlockProSettings,
@@ -45,28 +51,35 @@ export function createLivePreviewExtension(
 		provide: (field) => EditorView.decorations.from(field),
 	});
 
-	const classPlugin = ViewPlugin.fromClass(
+	const viewExtension = ViewPlugin.fromClass(
 		class {
+			decorations: DecorationSet;
 			private readonly view: EditorView;
 
 			constructor(view: EditorView) {
 				this.view = view;
-				syncEditorClass(view, getSettings());
+				this.decorations = buildLineDecorations(view, getSettings());
+				syncEditorClasses(view, getSettings());
 				onViewChange?.(view, true);
 			}
 
 			update(update: ViewUpdate): void {
-				syncEditorClass(update.view, getSettings());
+				this.decorations = buildLineDecorations(update.view, getSettings());
+				syncEditorClasses(update.view, getSettings());
 			}
 
 			destroy(): void {
 				this.view.dom.classList.remove(LIVE_PREVIEW_CLASS);
+				this.view.dom.classList.remove(LINE_NUMBERS_CLASS);
 				onViewChange?.(this.view, false);
 			}
 		},
+		{
+			decorations: (plugin) => plugin.decorations,
+		},
 	);
 
-	return [decorationsField, classPlugin];
+	return [decorationsField, viewExtension];
 }
 
 function buildDecorations(state: EditorState, settings: CodeBlockProSettings): DecorationSet {
@@ -125,10 +138,78 @@ function buildDecorations(state: EditorState, settings: CodeBlockProSettings): D
 	return builder.finish();
 }
 
-function syncEditorClass(view: EditorView, settings: CodeBlockProSettings): void {
-	const enabled = settings.showCopyButton || settings.showLanguageLabel;
+function buildLineDecorations(view: EditorView, settings: CodeBlockProSettings): DecorationSet {
+	if (!settings.showLineNumbers) {
+		return Decoration.none;
+	}
+
+	if (!view.state.field(editorLivePreviewField, false)) {
+		return Decoration.none;
+	}
+
+	const visibleRanges = view.visibleRanges;
+	if (visibleRanges.length === 0) {
+		return Decoration.none;
+	}
+
+	const { doc } = view.state;
+	const builder = new RangeSetBuilder<Decoration>();
+	let scanLine = 1;
+
+	while (scanLine <= doc.lines) {
+		const line = doc.line(scanLine);
+		const opening = FENCE_OPEN_PATTERN.exec(line.text);
+
+		if (!opening) {
+			scanLine++;
+			continue;
+		}
+
+		const fence = opening[1];
+		if (!fence) {
+			scanLine++;
+			continue;
+		}
+
+		let displayLine = 1;
+		let endLineNumber = scanLine + 1;
+
+		for (; endLineNumber <= doc.lines; endLineNumber++) {
+			const codeLine = doc.line(endLineNumber);
+
+			if (isClosingFence(codeLine.text, fence)) {
+				break;
+			}
+
+			if (isLineVisible(codeLine.from, codeLine.to, visibleRanges)) {
+				builder.add(
+					codeLine.from,
+					codeLine.from,
+					Decoration.line({
+						attributes: { 'data-cbp-line': String(displayLine) },
+					}),
+				);
+			}
+
+			displayLine++;
+		}
+
+		scanLine = endLineNumber + 1;
+	}
+
+	return builder.finish();
+}
+
+function isLineVisible(from: number, to: number, ranges: readonly Range[]): boolean {
+	return ranges.some((range) => range.from <= to && range.to >= from);
+}
+
+function syncEditorClasses(view: EditorView, settings: CodeBlockProSettings): void {
 	const livePreview = view.state.field(editorLivePreviewField, false) ?? false;
-	view.dom.classList.toggle(LIVE_PREVIEW_CLASS, enabled && livePreview);
+	const toolbarEnabled = settings.showCopyButton || settings.showLanguageLabel;
+
+	view.dom.classList.toggle(LIVE_PREVIEW_CLASS, livePreview && toolbarEnabled);
+	view.dom.classList.toggle(LINE_NUMBERS_CLASS, livePreview && settings.showLineNumbers);
 }
 
 function isClosingFence(line: string, fence: string): boolean {

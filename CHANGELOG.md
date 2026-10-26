@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-25
+
+### Added
+
+- Line numbers in reading view and Live Preview, generated without changing
+  the code text or the clipboard output.
+
+### Changed
+
+- Numbered reading view blocks keep long lines on one line and scroll
+  horizontally so the numbers stay aligned.
+
 ## [0.1.1] - 2026-10-25
 
 ### Added

@@ -3,11 +3,13 @@ import type { SettingDefinitionItem } from 'obsidian';
 import type CodeBlockProPlugin from './main';
 
 export interface CodeBlockProSettings {
+	showLineNumbers: boolean;
 	showCopyButton: boolean;
 	showLanguageLabel: boolean;
 }
 
 export const DEFAULT_SETTINGS: CodeBlockProSettings = {
+	showLineNumbers: true,
 	showCopyButton: true,
 	showLanguageLabel: true,
 };
@@ -30,6 +32,15 @@ export class SettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl).setName('Appearance').setHeading();
+
+		new Setting(containerEl)
+			.setName('Line numbers')
+			.setDesc('Show line numbers next to each code block.')
+			.addToggle((toggle) =>
+				toggle.setValue(this.plugin.settings.showLineNumbers).onChange(async (value) => {
+					await this.updateSetting('showLineNumbers', value);
+				}),
+			);
 
 		new Setting(containerEl)
 			.setName('Copy button')
@@ -61,6 +72,15 @@ export class SettingTab extends PluginSettingTab {
 				heading: 'Appearance',
 				items: [
 					{
+						name: 'Line numbers',
+						desc: 'Show line numbers next to each code block.',
+						control: {
+							type: 'toggle',
+							key: 'showLineNumbers',
+							defaultValue: DEFAULT_SETTINGS.showLineNumbers,
+						},
+					},
+					{
 						name: 'Copy button',
 						desc: 'Add a button to copy the code block to the clipboard.',
 						control: {
@@ -84,7 +104,7 @@ export class SettingTab extends PluginSettingTab {
 	}
 
 	async setControlValue(key: string, value: unknown): Promise<void> {
-		if (key !== 'showCopyButton' && key !== 'showLanguageLabel') {
+		if (key !== 'showLineNumbers' && key !== 'showCopyButton' && key !== 'showLanguageLabel') {
 			return;
 		}
 

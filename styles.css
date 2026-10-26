@@ -7,13 +7,61 @@
  */
 
 .cbp-block {
+	--cbp-line-number-gutter: 4ch;
+	--cbp-line-number-space: calc(var(--cbp-line-number-gutter) + var(--size-4-2));
 	margin: var(--size-4-3) 0;
 }
 
-.cbp-block > pre {
+.cbp-block > pre,
+.cbp-code-area > pre {
 	margin: 0;
 	border-top-left-radius: 0;
 	border-top-right-radius: 0;
+}
+
+.cbp-block.cbp-with-line-numbers:not(.cbp-has-toolbar) .cbp-code-area > pre {
+	border-top-right-radius: var(--code-radius);
+}
+
+.cbp-code-area {
+	display: flex;
+	align-items: stretch;
+}
+
+.cbp-code-area > pre {
+	flex: 1;
+	min-width: 0;
+	white-space: pre;
+	border-bottom-left-radius: 0;
+}
+
+.cbp-code-area > pre > code {
+	white-space: pre;
+	word-break: normal;
+	overflow-wrap: normal;
+}
+
+.cbp-line-numbers {
+	flex: none;
+	box-sizing: border-box;
+	width: var(--cbp-line-number-space);
+	padding: var(--size-4-3) var(--size-4-1) var(--size-4-3) 0;
+	background-color: var(--code-background);
+	border: var(--code-border-width) solid var(--code-border-color);
+	border-right: none;
+	border-radius: 0 0 0 var(--code-radius);
+	color: var(--text-faint);
+	font-family: var(--font-monospace);
+	font-size: var(--code-size);
+	line-height: var(--line-height-normal);
+	text-align: right;
+	white-space: pre;
+	user-select: none;
+	overflow: hidden;
+}
+
+.cbp-block:not(.cbp-has-toolbar) .cbp-line-numbers {
+	border-top-left-radius: var(--code-radius);
 }
 
 .cbp-toolbar {
@@ -119,6 +167,38 @@
 /* The Live Preview toolbar replaces Obsidian's native code block flair. */
 .markdown-source-view.mod-cm6 .cbp-live-preview .code-block-flair {
 	display: none;
+}
+
+/* Line numbers in Live Preview are generated from data attributes. */
+.cbp-live-numbers {
+	--cbp-line-number-gutter: 4ch;
+	--cbp-line-number-space: calc(var(--cbp-line-number-gutter) + var(--size-4-2));
+}
+
+.markdown-source-view.mod-cm6 .cbp-live-numbers .cm-line.HyperMD-codeblock {
+	padding-inline-start: calc(var(--size-4-4) + var(--cbp-line-number-space));
+}
+
+.markdown-source-view.mod-cm6 .cbp-live-numbers .cm-line.HyperMD-codeblock[data-cbp-line] {
+	position: relative;
+}
+
+.markdown-source-view.mod-cm6 .cbp-live-numbers .cm-line.HyperMD-codeblock[data-cbp-line]::before {
+	content: attr(data-cbp-line);
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline-start: 0;
+	box-sizing: border-box;
+	width: calc(var(--size-4-4) + var(--cbp-line-number-space));
+	padding-inline-end: var(--size-4-2);
+	color: var(--text-faint);
+	font-family: var(--font-monospace);
+	font-size: inherit;
+	line-height: inherit;
+	text-align: right;
+	white-space: pre;
+	user-select: none;
+	pointer-events: none;
 }
 
 @media (pointer: coarse) {
