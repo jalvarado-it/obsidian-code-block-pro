@@ -198,8 +198,13 @@ saving** command, then enable the plugin under **Settings → Community plugins*
 
 1. Bump the version with `npm version patch|minor|major`.
 2. Push the commit and the signed tag.
-3. Create a GitHub release for the tag and attach `main.js`, `manifest.json`,
-   and `styles.css`.
+3. The **Release** workflow builds the plugin, verifies the tag against
+   `manifest.json`, generates `SHA256SUMS` and the release notes, attests the
+   build, and creates the GitHub release with `main.js`, `manifest.json`,
+   `styles.css`, the SBOMs, and the checksums.
+
+Locally, `npm run checksums` and `npm run release-notes` generate the same
+release metadata.
 
 ## Security
 
