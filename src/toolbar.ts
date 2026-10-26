@@ -16,6 +16,8 @@ export interface ToolbarOptions {
 	language: string;
 	codeText: string;
 	collapsible?: boolean;
+	refreshable?: boolean;
+	onRefresh?: () => void;
 }
 
 /**
@@ -30,6 +32,11 @@ export function createToolbar(options: ToolbarOptions): HTMLElement | null {
 	const normalizedLanguage = normalizeLanguage(options.language) || 'text';
 	const showLanguage = settings.showLanguageLabel;
 	const showCollapse = collapsible && countLines(codeText) > COLLAPSE_LINE_THRESHOLD;
+	const refresh = options.onRefresh;
+	const showRefresh =
+		options.refreshable === true &&
+		typeof refresh === 'function' &&
+		(settings.showCopyButton || showLanguage || showCollapse);
 
 	if (!settings.showCopyButton && !showLanguage && !showCollapse) {
 		return null;
@@ -59,8 +66,12 @@ export function createToolbar(options: ToolbarOptions): HTMLElement | null {
 		pill.createSpan({ cls: `${PREFIX}-language-label`, text: displayLanguage });
 	}
 
-	if (settings.showCopyButton || showCollapse) {
+	if (settings.showCopyButton || showCollapse || showRefresh) {
 		const actions = toolbar.createDiv({ cls: `${PREFIX}-actions` });
+
+		if (showRefresh && refresh) {
+			addRefreshButton(actions, refresh);
+		}
 
 		if (settings.showCopyButton) {
 			addCopyButton(actions, codeText, displayLanguage);
@@ -89,6 +100,26 @@ function setLanguageIcon(iconEl: HTMLElement, language: string): void {
 	if (!iconEl.querySelector('svg')) {
 		iconEl.setText('</>');
 	}
+}
+
+function addRefreshButton(actions: HTMLElement, onRefresh: () => void): void {
+	const label = 'Refresh line numbers';
+	const button = createIconButton(actions, `${PREFIX}-refresh`, 'refresh-cw', label);
+	let feedbackTimer: number | undefined;
+
+	button.addEventListener('click', () => {
+		onRefresh();
+		button.addClass('is-refreshing');
+
+		if (feedbackTimer !== undefined) {
+			window.clearTimeout(feedbackTimer);
+		}
+
+		feedbackTimer = window.setTimeout(() => {
+			button.removeClass('is-refreshing');
+			feedbackTimer = undefined;
+		}, 450);
+	});
 }
 
 function addCopyButton(actions: HTMLElement, codeText: string, language: string): void {

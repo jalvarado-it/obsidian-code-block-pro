@@ -1,7 +1,7 @@
 import type { EditorView } from '@codemirror/view';
 import { MarkdownView, Plugin } from 'obsidian';
 import { createLivePreviewExtension, refreshDecorations } from './live-preview';
-import { decorateCodeBlocks } from './processor';
+import { decorateCodeBlocks, refreshCodeBlockMetrics } from './processor';
 import {
 	DEFAULT_SETTINGS,
 	SettingTab,
@@ -36,6 +36,29 @@ export default class CodeBlockProPlugin extends Plugin {
 		);
 
 		this.addSettingTab(new SettingTab(this.app, this));
+
+		// Themes, snippets, and font changes can alter the rendered code metrics.
+		// Re-measure reading view gutters after Obsidian finishes applying CSS.
+		this.registerEvent(
+			this.app.workspace.on('css-change', () => {
+				window.requestAnimationFrame(() => {
+					this.refreshReadingCodeBlocks();
+				});
+			}),
+		);
+	}
+
+	private refreshReadingCodeBlocks(): void {
+		this.app.workspace.iterateAllLeaves((leaf) => {
+			const { view } = leaf;
+			if (!(view instanceof MarkdownView)) {
+				return;
+			}
+
+			view.containerEl.querySelectorAll<HTMLElement>('.cbp-block').forEach((block) => {
+				refreshCodeBlockMetrics(block);
+			});
+		});
 	}
 
 	/**

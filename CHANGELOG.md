@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-10-25
+
+### Added
+
+- Refresh control in reading view to recalculate line-number metrics after a
+  theme, font, or CSS change.
+
+### Fixed
+
+- Line numbers now realign automatically when Obsidian reapplies theme or
+  snippet CSS, without rebuilding the code block.
+
 ## [0.3.2] - 2026-10-25
 
 ### Security

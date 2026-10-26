@@ -223,6 +223,16 @@
 	color: var(--text-success);
 }
 
+.cbp-refresh.is-refreshing svg {
+	animation: cbp-refresh-spin 450ms ease;
+}
+
+@keyframes cbp-refresh-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
 /* Obsidian's markdown button styles add a filled background; keep the header
    actions minimal and let only hover/active provide the surface. */
 .cbp-block .cbp-toolbar .cbp-icon-button,
@@ -477,5 +487,9 @@
 @media (prefers-reduced-motion: reduce) {
 	.cbp-icon-button {
 		transition: none;
+	}
+
+	.cbp-refresh.is-refreshing svg {
+		animation: none;
 	}
 }

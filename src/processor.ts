@@ -31,7 +31,19 @@ export function decorateCodeBlocks(container: HTMLElement, settings: CodeBlockPr
 		}
 
 		const codeText = code.textContent ?? '';
-		const toolbar = createToolbar({ settings, language, codeText, collapsible: true });
+		let wrapper: HTMLElement | null = null;
+		const toolbar = createToolbar({
+			settings,
+			language,
+			codeText,
+			collapsible: true,
+			refreshable: settings.showLineNumbers,
+			onRefresh: () => {
+				if (wrapper) {
+					refreshCodeBlockMetrics(wrapper);
+				}
+			},
+		});
 
 		if (!toolbar && !settings.showLineNumbers) {
 			continue;
@@ -39,7 +51,7 @@ export function decorateCodeBlocks(container: HTMLElement, settings: CodeBlockPr
 
 		pre.setAttribute(PROCESSED_ATTRIBUTE, 'true');
 
-		const wrapper = parent.createDiv({ cls: `${PREFIX}-block` });
+		wrapper = parent.createDiv({ cls: `${PREFIX}-block` });
 		parent.insertBefore(wrapper, pre);
 
 		if (toolbar) {
@@ -113,6 +125,25 @@ function syncGutterMetrics(pre: HTMLElement, code: HTMLElement, gutter: HTMLElem
 function parseLength(value: string): number {
 	const parsed = Number.parseFloat(value);
 	return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/**
+ * Recalculate the line-number gutter after a theme, font, or CSS change.
+ *
+ * This updates the existing DOM instead of rebuilding the block, preserving
+ * collapse state, selection, and the rest of the toolbar.
+ */
+export function refreshCodeBlockMetrics(block: HTMLElement): void {
+	const pre = block.querySelector<HTMLElement>(`.${PREFIX}-code-area > pre`);
+	const code = pre?.querySelector<HTMLElement>('code');
+	const gutter = block.querySelector<HTMLElement>(`.${PREFIX}-line-numbers`);
+
+	if (!pre || !code || !gutter) {
+		return;
+	}
+
+	gutter.setText(buildLineNumbers(countLines(code.textContent ?? '')));
+	syncGutterMetrics(pre, code, gutter);
 }
 
 function buildLineNumbers(lineCount: number): string {

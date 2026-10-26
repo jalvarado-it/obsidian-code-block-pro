@@ -9,6 +9,8 @@ fence declares one, the language name.
 - Copy button with text, icon confirmation, and screen reader feedback.
 - Line numbers in reading view and Live Preview, without changing the code or
   the copied text.
+- Automatic line-number realignment when Obsidian reapplies a theme or CSS,
+  plus a manual refresh control in reading view.
 - Collapsible long code blocks in reading view.
 - Works in reading view and Live Preview.
 - Theme-aware container, header, and controls built on Obsidian CSS variables.
