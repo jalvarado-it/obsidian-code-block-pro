@@ -11,8 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Fenced blocks inside callouts, blockquotes, and indented lists now resolve
-  titles and toolbars.
+- Reading View resolves titles for fences inside callouts, blockquotes, and
+  indented lists; Live Preview supports indented list fences.
 - JSX and TSX download extensions (`code.jsx`, `code.tsx`).
 - Unit tests for fence parsing, nested prefixes, title matching, language
   metadata, and settings normalization.

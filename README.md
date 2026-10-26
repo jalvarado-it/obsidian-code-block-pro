@@ -19,7 +19,8 @@ fence declares one, the language name and block title.
 - Optional vertical scrolling after a configurable number of lines in reading
   view.
 - Works in reading view and Live Preview.
-- Fenced blocks inside callouts, blockquotes, and indented lists are supported.
+- Reading View supports fenced blocks inside callouts, blockquotes, and indented
+  lists; Live Preview supports indented list fences.
 - Theme-aware container, header, and controls built on Obsidian CSS variables.
 - Copy, download, language label, block title, and line numbers can be disabled
   independently.
