@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-25
+
+### Added
+
+- Live Preview support through a CodeMirror 6 extension.
+- Local vault installer with symlink support for testing (`npm run install:vault`).
+
+### Changed
+
+- The copy action is now an icon button that switches to a check mark after copying.
+- The language label is rendered as a badge, visually separated from the copy action.
+
+### Fixed
+
+- The plugin declares compatibility with Obsidian 1.5.0+, and the settings tab
+  falls back to the classic API on versions before 1.13.0.
+
 ## [0.1.0] - 2026-10-25
 
 ### Added

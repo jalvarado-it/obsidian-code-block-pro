@@ -1,23 +1,40 @@
+import type { EditorView } from '@codemirror/view';
 import { MarkdownView, Plugin } from 'obsidian';
+import { createLivePreviewExtension, refreshDecorations } from './live-preview';
 import { decorateCodeBlocks } from './processor';
 import { DEFAULT_SETTINGS, SettingTab, type CodeBlockProSettings } from './settings';
 
 export default class CodeBlockProPlugin extends Plugin {
 	settings: CodeBlockProSettings = Object.assign({}, DEFAULT_SETTINGS);
+	private readonly editorViews = new Set<EditorView>();
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
 
-		// Reading view and Live Preview both run markdown post-processors.
+		// Reading view and rendered embeds.
 		this.registerMarkdownPostProcessor((element) => {
 			decorateCodeBlocks(element, this.settings);
 		});
+
+		// Live Preview, where code blocks are CodeMirror content instead of <pre>.
+		this.registerEditorExtension(
+			createLivePreviewExtension(
+				() => this.settings,
+				(view, active) => {
+					if (active) {
+						this.editorViews.add(view);
+					} else {
+						this.editorViews.delete(view);
+					}
+				},
+			),
+		);
 
 		this.addSettingTab(new SettingTab(this.app, this));
 	}
 
 	/**
-	 * Reload styles for the open notes so display changes apply immediately.
+	 * Refresh open notes so display changes apply immediately.
 	 */
 	refreshViews(): void {
 		this.app.workspace.iterateAllLeaves((leaf) => {
@@ -26,6 +43,10 @@ export default class CodeBlockProPlugin extends Plugin {
 				view.previewMode.rerender(true);
 			}
 		});
+
+		for (const view of this.editorViews) {
+			view.dispatch({ effects: refreshDecorations.of(null) });
+		}
 	}
 
 	async loadSettings(): Promise<void> {

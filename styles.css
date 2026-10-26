@@ -17,6 +17,7 @@
 }
 
 .cbp-toolbar {
+	position: relative;
 	display: flex;
 	align-items: center;
 	gap: var(--size-4-2);
@@ -28,6 +29,11 @@
 }
 
 .cbp-language {
+	display: inline-flex;
+	align-items: center;
+	padding: var(--size-4-1) var(--size-4-2);
+	border-radius: var(--radius-s);
+	background-color: var(--background-modifier-hover);
 	color: var(--text-muted);
 	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
@@ -35,16 +41,34 @@
 	text-transform: lowercase;
 }
 
-.cbp-copy {
+.cbp-actions {
+	display: flex;
+	align-items: center;
 	margin-left: auto;
-	min-height: 28px;
-	padding: var(--size-4-1) var(--size-4-2);
+}
+
+.cbp-toolbar--with-language .cbp-actions {
+	padding-left: var(--size-4-2);
+	border-left: 1px solid var(--background-modifier-border);
+}
+
+.cbp-copy {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	padding: 0;
 	border: none;
 	border-radius: var(--radius-s);
 	background-color: transparent;
 	color: var(--text-muted);
-	font-size: var(--font-ui-smaller);
 	cursor: pointer;
+}
+
+.cbp-copy svg {
+	width: var(--icon-s);
+	height: var(--icon-s);
 }
 
 .cbp-copy:hover {
@@ -57,9 +81,49 @@
 	outline-offset: 2px;
 }
 
+.cbp-copy.is-copied,
+.cbp-copy.is-copied:hover {
+	color: var(--text-success);
+}
+
+.cbp-status {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+/*
+ * Live Preview block widgets are direct children of .cm-content, where
+ * Obsidian forces display:block and margin:0 !important. Keep the widget
+ * hidden except in Live Preview; the wrapper also provides vertical spacing.
+ */
+.cm-content > .cbp-live-wrapper {
+	display: none;
+	padding: var(--size-4-2) 0 var(--size-4-1);
+}
+
+.markdown-source-view.mod-cm6 .cm-content > .cbp-live-wrapper {
+	display: none;
+}
+
+.markdown-source-view.mod-cm6 .cbp-live-preview .cm-content > .cbp-live-wrapper {
+	display: block;
+}
+
+/* The Live Preview toolbar replaces Obsidian's native code block flair. */
+.markdown-source-view.mod-cm6 .cbp-live-preview .code-block-flair {
+	display: none;
+}
+
 @media (pointer: coarse) {
 	.cbp-copy {
-		min-width: 44px;
-		min-height: 44px;
+		width: 44px;
+		height: 44px;
 	}
 }

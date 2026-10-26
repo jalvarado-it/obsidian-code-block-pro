@@ -11,7 +11,7 @@ fence declares one, the language name.
 - Theme-aware styles built on Obsidian CSS variables.
 - Both elements can be disabled independently.
 
-Requires Obsidian 1.13.0 or later.
+Requires Obsidian 1.5.0 or later.
 
 ## Installation
 
@@ -51,14 +51,44 @@ npm run lint   # ESLint with eslint-plugin-obsidianmd
 The build output is `main.js`, which is ignored by Git and attached to GitHub
 releases instead.
 
+### Local testing
+
+Install the built plugin into a vault with symlinks, so `npm run dev` rebuilds
+are picked up without reinstalling:
+
+```bash
+npm run build
+npm run install:vault
+```
+
+The installer asks for the vault path. You can also pass it directly or use an
+environment variable:
+
+```bash
+npm run install:vault -- /path/to/vault
+npm run install:vault -- /path/to/vault --copy
+OBSIDIAN_VAULT=/path/to/vault npm run install:vault
+```
+
+Symlinks are the default. Use `--copy` for regular files instead (on Windows the
+installer falls back to copying automatically if symlinks are unavailable).
+After installing, reload Obsidian with `Cmd/Ctrl+R` or the **Reload app without
+saving** command, then enable the plugin under **Settings → Community plugins**.
+
+`npm run deploy` runs the build and then the installer.
+
 ## Project structure
 
 ```text
 .
 ├── src/
 │   ├── main.ts        # Plugin lifecycle, post-processor registration
-│   ├── processor.ts   # Code block decoration and copy behavior
+│   ├── live-preview.ts # CodeMirror 6 extension for Live Preview
+│   ├── processor.ts   # Reading view code block decoration
+│   ├── toolbar.ts     # Shared toolbar and copy behavior
 │   └── settings.ts    # Settings shape and settings tab
+├── scripts/
+│   └── install.mjs    # Local vault installer
 ├── styles.css         # Scoped, theme-aware styles
 ├── manifest.json      # Plugin metadata
 ├── esbuild.config.mjs # Bundler configuration
