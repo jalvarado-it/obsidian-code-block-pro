@@ -16,6 +16,7 @@ export interface ToolbarOptions {
 	language: string;
 	codeText: string;
 	title?: string;
+	lineCount?: number;
 	collapsible?: boolean;
 	refreshable?: boolean;
 	onRefresh?: () => void;
@@ -34,7 +35,7 @@ export function createToolbar(options: ToolbarOptions): HTMLElement | null {
 	const showLanguage = settings.showLanguageLabel;
 	const showDownload = settings.showDownloadButton;
 	const displayTitle = settings.showBlockTitle ? (options.title ?? '').trim() : '';
-	const lineCount = countLines(codeText);
+	const lineCount = options.lineCount ?? (collapsible ? countLines(codeText) : 0);
 	const showCollapse =
 		collapsible &&
 		lineCount > settings.collapseAfterLines &&
@@ -43,7 +44,7 @@ export function createToolbar(options: ToolbarOptions): HTMLElement | null {
 	const showRefresh =
 		options.refreshable === true &&
 		typeof refresh === 'function' &&
-		(settings.showCopyButton || showLanguage || showCollapse);
+		(settings.showCopyButton || showLanguage || showCollapse || showDownload || !!displayTitle);
 
 	if (
 		!settings.showCopyButton &&
@@ -80,13 +81,7 @@ export function createToolbar(options: ToolbarOptions): HTMLElement | null {
 	}
 
 	if (displayTitle) {
-		const titleEl = toolbar.createDiv({
-			cls: `${PREFIX}-title`,
-			text: displayTitle,
-			attr: { 'data-cbp-title': '' },
-		});
-
-		setTooltip(titleEl, displayTitle);
+		addToolbarTitle(toolbar, displayTitle);
 	}
 
 	if (settings.showCopyButton || showCollapse || showRefresh || showDownload) {
@@ -110,6 +105,27 @@ export function createToolbar(options: ToolbarOptions): HTMLElement | null {
 	}
 
 	return toolbar;
+}
+
+/**
+ * Add the optional block title after the language pill and before the actions.
+ * Used both when the toolbar is created and when a deferred title resolves.
+ */
+export function addToolbarTitle(toolbar: HTMLElement, title: string): void {
+	const displayTitle = title.trim();
+
+	if (!displayTitle || toolbar.querySelector(`.${PREFIX}-title`)) {
+		return;
+	}
+
+	const titleEl = toolbar.createDiv({ cls: `${PREFIX}-title`, text: displayTitle });
+	const actions = toolbar.querySelector(`.${PREFIX}-actions`);
+
+	setTooltip(titleEl, displayTitle);
+
+	if (actions) {
+		toolbar.insertBefore(titleEl, actions);
+	}
 }
 
 export function countLines(codeText: string): number {

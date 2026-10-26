@@ -1,20 +1,38 @@
 import { TFile } from 'obsidian';
 import type { App, MarkdownPostProcessorContext } from 'obsidian';
-import { findFenceTitleMatch } from './fence';
+import {
+	buildFenceTitleIndex,
+	findFenceTitleMatch,
+	findIndexedTitle,
+	type FenceTitleIndex,
+	type FenceTitleMatch,
+} from './fence';
 import { isIgnoredLanguage } from './language';
 import type { CodeBlockProSettings } from './settings';
-import { countLines, createToolbar } from './toolbar';
+import { addToolbarTitle, countLines, createToolbar } from './toolbar';
 
 const PREFIX = 'cbp';
 const PROCESSED_ATTRIBUTE = 'data-code-block-pro';
 const PENDING_ATTRIBUTE = 'data-code-block-pro-pending';
 const IGNORED_CONTAINERS = '.block-language-mermaid, .block-language-dataview, .block-language-dataviewjs, .block-language-query';
 
+interface CachedTitleIndex {
+	mtime: number;
+	size: number;
+	promise: Promise<FenceTitleIndex>;
+}
+
+const titleIndexCache = new WeakMap<TFile, CachedTitleIndex>();
+
 /**
  * Add a toolbar and optional line numbers to fenced code blocks in reading view.
  *
  * Obsidian calls post-processors again on every render, so blocks are marked
  * with an attribute to keep the decoration from being added twice.
+ *
+ * Titles resolved from the section are applied synchronously. When section
+ * information is unavailable, the toolbar is created immediately and the title
+ * is inserted later, so the block is not delayed by a source read.
  */
 export async function decorateCodeBlocks(
 	container: HTMLElement,
@@ -31,16 +49,6 @@ export async function decorateCodeBlocks(
 	) {
 		return;
 	}
-
-	let sourceText: string | null = null;
-	const readSourceText = async (): Promise<string> => {
-		if (sourceText !== null) {
-			return sourceText;
-		}
-
-		sourceText = await readSource(app, context?.sourcePath);
-		return sourceText;
-	};
 
 	for (const code of container.querySelectorAll<HTMLElement>('pre > code')) {
 		const pre = code.parentElement;
@@ -62,56 +70,65 @@ export async function decorateCodeBlocks(
 		}
 
 		const codeText = code.textContent ?? '';
+		const lineCount = countLines(codeText);
 		let title = '';
+		let titleResolved = false;
 
 		if (settings.showBlockTitle) {
-			let resolved = false;
+			const match = context
+				? findSectionTitle(context, [parent, pre, container], language, codeText)
+				: { found: false, title: '' };
 
-			if (context) {
-				for (const element of [pre.parentElement, pre, container]) {
-					if (!element) {
-						continue;
-					}
+			title = match.title;
+			titleResolved = match.found;
+		}
 
-					const text = getSectionText(context, element);
-					if (text === null) {
-						continue;
-					}
+		const showCollapse =
+			lineCount > settings.collapseAfterLines &&
+			lineCount > settings.collapsedLines;
+		const willDecorateWithoutTitle =
+			settings.showCopyButton ||
+			settings.showDownloadButton ||
+			settings.showLanguageLabel ||
+			settings.showLineNumbers ||
+			showCollapse;
+		let resolveTitleLater = false;
 
-					const match = findFenceTitleMatch(text, language, codeText);
-					if (match.found) {
-						title = match.title;
-						resolved = true;
-						break;
-					}
-				}
-			}
-
-			if (!resolved) {
+		if (settings.showBlockTitle && !titleResolved) {
+			if (willDecorateWithoutTitle) {
+				resolveTitleLater = true;
+			} else {
 				pre.setAttribute(PENDING_ATTRIBUTE, 'true');
 
 				try {
-					const source = await readSourceText();
-					title = findFenceTitleMatch(source, language, codeText).title;
+					const match = await resolveIndexedTitle(context, app, language, codeText);
+					title = match.title;
+					titleResolved = match.found;
 				} finally {
 					pre.removeAttribute(PENDING_ATTRIBUTE);
+				}
+
+				if (!pre.isConnected) {
+					continue;
 				}
 			}
 		}
 
 		let wrapper: HTMLElement | null = null;
+		const refreshBlock = (): void => {
+			if (wrapper) {
+				refreshCodeBlockMetrics(wrapper);
+			}
+		};
 		const toolbar = createToolbar({
 			settings,
 			language,
 			codeText,
 			title,
+			lineCount,
 			collapsible: true,
 			refreshable: settings.showLineNumbers,
-			onRefresh: () => {
-				if (wrapper) {
-					refreshCodeBlockMetrics(wrapper);
-				}
-			},
+			onRefresh: refreshBlock,
 		});
 
 		if (!toolbar && !settings.showLineNumbers) {
@@ -121,45 +138,77 @@ export async function decorateCodeBlocks(
 		pre.setAttribute(PROCESSED_ATTRIBUTE, 'true');
 
 		wrapper = parent.createDiv({ cls: `${PREFIX}-block` });
-		wrapper.style.setProperty(`--${PREFIX}-collapsed-lines`, String(settings.collapsedLines));
+		const block = wrapper;
+		block.style.setProperty(`--${PREFIX}-collapsed-lines`, String(settings.collapsedLines));
 
 		const scrollLines =
 			settings.scrollAfterLines > 0
 				? Math.max(settings.scrollAfterLines, settings.collapsedLines)
 				: 0;
 
-		if (scrollLines > 0 && countLines(codeText) > scrollLines) {
-			wrapper.addClass(`${PREFIX}-scrollable`);
+		if (scrollLines > 0 && lineCount > scrollLines) {
+			block.addClass(`${PREFIX}-scrollable`);
 		}
 
-		wrapper.style.setProperty(`--${PREFIX}-scroll-lines`, String(scrollLines));
-		parent.insertBefore(wrapper, pre);
+		block.style.setProperty(`--${PREFIX}-scroll-lines`, String(scrollLines));
+		parent.insertBefore(block, pre);
 
 		if (toolbar) {
-			wrapper.addClass(`${PREFIX}-has-toolbar`);
-			wrapper.appendChild(toolbar);
+			block.addClass(`${PREFIX}-has-toolbar`);
+			block.appendChild(toolbar);
 		}
 
 		if (settings.showCopyButton) {
-			wrapper.addClass(`${PREFIX}-has-copy`);
+			block.addClass(`${PREFIX}-has-copy`);
 		}
 
-		const codeArea = wrapper.createDiv({ cls: `${PREFIX}-code-area` });
+		const codeArea = block.createDiv({ cls: `${PREFIX}-code-area` });
 		let gutter: HTMLElement | null = null;
 
 		if (settings.showLineNumbers) {
-			wrapper.addClass(`${PREFIX}-with-line-numbers`);
+			block.addClass(`${PREFIX}-with-line-numbers`);
 
 			gutter = codeArea.createDiv({
 				cls: `${PREFIX}-line-numbers`,
 				attr: { 'aria-hidden': 'true' },
 			});
 
-			gutter.setText(buildLineNumbers(countLines(codeText)));
+			gutter.setText(buildLineNumbers(lineCount));
 		}
 
 		codeArea.appendChild(pre);
 		syncCodeBlockMetrics(pre, code, gutter);
+
+		if (resolveTitleLater) {
+			void resolveIndexedTitle(context, app, language, codeText).then((match) => {
+				if (!block.isConnected || !match.found || !match.title) {
+					return;
+				}
+
+				if (toolbar && toolbar.isConnected) {
+					addToolbarTitle(toolbar, match.title);
+					return;
+				}
+
+				const lateToolbar = createToolbar({
+					settings,
+					language,
+					codeText,
+					title: match.title,
+					lineCount,
+					collapsible: true,
+					refreshable: settings.showLineNumbers,
+					onRefresh: refreshBlock,
+				});
+
+				if (!lateToolbar) {
+					return;
+				}
+
+				block.insertBefore(lateToolbar, codeArea);
+				block.addClass(`${PREFIX}-has-toolbar`);
+			});
+		}
 	}
 }
 
@@ -252,6 +301,31 @@ function getLanguage(code: HTMLElement): string {
 	return match?.[1] ?? '';
 }
 
+function findSectionTitle(
+	context: MarkdownPostProcessorContext,
+	elements: Array<HTMLElement | null>,
+	language: string,
+	codeText: string,
+): FenceTitleMatch {
+	for (const element of elements) {
+		if (!element) {
+			continue;
+		}
+
+		const text = getSectionText(context, element);
+		if (text === null) {
+			continue;
+		}
+
+		const match = findFenceTitleMatch(text, language, codeText);
+		if (match.found) {
+			return match;
+		}
+	}
+
+	return { found: false, title: '' };
+}
+
 function getSectionText(
 	context: MarkdownPostProcessorContext,
 	element: HTMLElement,
@@ -263,19 +337,44 @@ function getSectionText(
 	}
 }
 
-async function readSource(app: App | undefined, sourcePath: string | undefined): Promise<string> {
-	if (!app || !sourcePath) {
-		return '';
+/**
+ * Build the title index once per file and reuse it across blocks and render
+ * passes. The cached entry is invalidated by the file's mtime and size.
+ */
+function getTitleIndex(
+	context: MarkdownPostProcessorContext | undefined,
+	app: App | undefined,
+): Promise<FenceTitleIndex> {
+	if (!context || !app || !context.sourcePath) {
+		return Promise.resolve(new Map<string, string>());
 	}
 
-	const file = app.vault.getAbstractFileByPath(sourcePath);
+	const file = app.vault.getAbstractFileByPath(context.sourcePath);
 	if (!(file instanceof TFile)) {
-		return '';
+		return Promise.resolve(new Map<string, string>());
 	}
 
-	try {
-		return await app.vault.cachedRead(file);
-	} catch {
-		return '';
+	const { mtime, size } = file.stat;
+	const cached = titleIndexCache.get(file);
+	if (cached && cached.mtime === mtime && cached.size === size) {
+		return cached.promise;
 	}
+
+	const promise = app.vault
+		.cachedRead(file)
+		.then((source) => buildFenceTitleIndex(source))
+		.catch(() => new Map<string, string>());
+
+	titleIndexCache.set(file, { mtime, size, promise });
+	return promise;
+}
+
+async function resolveIndexedTitle(
+	context: MarkdownPostProcessorContext | undefined,
+	app: App | undefined,
+	language: string,
+	codeText: string,
+): Promise<FenceTitleMatch> {
+	const index = await getTitleIndex(context, app);
+	return findIndexedTitle(index, language, codeText);
 }
