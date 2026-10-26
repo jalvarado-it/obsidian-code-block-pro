@@ -25,6 +25,7 @@ Thumbs.db
 data.json
 .env
 
-# Agent settings (local)
-.claude/settings.local.json
-.agents/settings.local.json
+# Local workspace files
+.agents/
+.claude/
+skills-lock.json
