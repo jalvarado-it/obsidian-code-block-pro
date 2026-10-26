@@ -1,8 +1,11 @@
 import { normalizeLanguage } from './language';
 
-const FENCE_OPEN_PATTERN = /^ {0,3}(`{3,}|~{3,})\s*([^\s`]*)(?:\s+(.*))?$/;
+const FENCE_OPEN_PATTERN = /^([ ]{0,3})(`{3,}|~{3,})\s*([^\s`]*)(?:\s+(.*))?$/;
+const SOURCE_FENCE_OPEN_PATTERN =
+	/^((?:[ \t]*>[ \t]?)*[ \t]*)(`{3,}|~{3,})\s*([^\s`]*)(?:\s+(.*))?$/;
 
 export interface FenceInfo {
+	prefix: string;
 	fence: string;
 	language: string;
 	title: string;
@@ -22,17 +25,30 @@ interface ScannedFence {
 }
 
 export function parseFenceLine(line: string): FenceInfo | null {
-	const match = FENCE_OPEN_PATTERN.exec(line);
-	const fence = match?.[1];
+	return parseFenceMatch(FENCE_OPEN_PATTERN.exec(line));
+}
+
+/**
+ * Parse a fence from raw Markdown source, including blockquote markers and
+ * list indentation. Reading view only uses this to match rendered code, where
+ * exact content comparison prevents most false positives.
+ */
+export function parseSourceFenceLine(line: string): FenceInfo | null {
+	return parseFenceMatch(SOURCE_FENCE_OPEN_PATTERN.exec(line));
+}
+
+function parseFenceMatch(match: RegExpExecArray | null): FenceInfo | null {
+	const fence = match?.[2];
 
 	if (!fence) {
 		return null;
 	}
 
 	return {
+		prefix: match[1] ?? '',
 		fence,
-		language: match[2] ?? '',
-		title: (match[3] ?? '').trim(),
+		language: match[3] ?? '',
+		title: (match[4] ?? '').trim(),
 	};
 }
 
@@ -51,6 +67,28 @@ export function isClosingFence(line: string, fence: string): boolean {
 	}
 
 	return true;
+}
+
+/**
+ * Remove the blockquote/list prefix captured from the opening fence line.
+ * Extra indentation after the prefix is preserved as code indentation.
+ */
+export function stripFencePrefix(line: string, prefix: string): string {
+	if (!prefix) {
+		return line;
+	}
+
+	if (line.startsWith(prefix)) {
+		return line.slice(prefix.length);
+	}
+
+	const trimmedPrefix = prefix.trimEnd();
+	if (!trimmedPrefix || !line.startsWith(trimmedPrefix)) {
+		return line;
+	}
+
+	const rest = line.slice(trimmedPrefix.length);
+	return rest.startsWith(' ') ? rest.slice(1) : rest;
 }
 
 /**
@@ -129,7 +167,7 @@ function scanFences(
 	let index = 0;
 
 	while (index < lines.length) {
-		const info = parseFenceLine(lines[index] ?? '');
+		const info = parseSourceFenceLine(lines[index] ?? '');
 
 		if (!info) {
 			index++;
@@ -142,7 +180,7 @@ function scanFences(
 		let end = index + 1;
 
 		for (; end < lines.length; end++) {
-			const line = lines[end] ?? '';
+			const line = stripFencePrefix(lines[end] ?? '', info.prefix);
 
 			if (isClosingFence(line, info.fence)) {
 				break;

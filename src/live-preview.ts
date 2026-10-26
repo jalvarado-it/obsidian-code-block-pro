@@ -3,7 +3,13 @@ import type { EditorState, Extension, Text } from '@codemirror/state';
 import { Decoration, EditorView, ViewPlugin, WidgetType } from '@codemirror/view';
 import type { DecorationSet, ViewUpdate } from '@codemirror/view';
 import { editorLivePreviewField } from 'obsidian';
-import { isClosingFence, parseFenceLine } from './fence';
+import {
+	isClosingFence,
+	parseFenceLine,
+	parseSourceFenceLine,
+	stripFencePrefix,
+	type FenceInfo,
+} from './fence';
 import { isIgnoredLanguage } from './language';
 import { DEFAULT_SETTINGS } from './settings';
 import type { CodeBlockProSettings } from './settings';
@@ -17,6 +23,7 @@ const EMPTY_BLOCKS: readonly FenceBlock[] = [];
 interface FenceBlock {
 	language: string;
 	title: string;
+	prefix: string;
 	ignored: boolean;
 	openLine: number;
 	openFrom: number;
@@ -31,6 +38,7 @@ interface FenceBlock {
 interface ToolbarBlock {
 	language: string;
 	title: string;
+	prefix: string;
 	from: number;
 	to: number;
 	doc: Text;
@@ -169,6 +177,7 @@ function buildDecorations(state: EditorState, settings: CodeBlockProSettings): D
 					{
 						language: block.language,
 						title: block.title,
+						prefix: block.prefix,
 						from: block.codeFrom,
 						to: block.codeTo,
 						doc: state.doc,
@@ -260,19 +269,20 @@ function scanFenceBlocks(state: EditorState): FenceBlock[] {
 	let lineNumber = 1;
 
 	while (lineNumber <= doc.lines) {
-		const line = doc.line(lineNumber);
-		const opening = parseFenceLine(line.text);
+		const opening = parseLiveFenceLine(doc, lineNumber);
 
 		if (!opening) {
 			lineNumber++;
 			continue;
 		}
 
-		const { fence, language, title } = opening;
+		const { fence, language, title, prefix } = opening;
 		let endLineNumber = lineNumber + 1;
 
 		for (; endLineNumber <= doc.lines; endLineNumber++) {
-			if (isClosingFence(doc.line(endLineNumber).text, fence)) {
+			const line = stripFencePrefix(doc.line(endLineNumber).text, prefix);
+
+			if (isClosingFence(line, fence)) {
 				break;
 			}
 		}
@@ -282,15 +292,16 @@ function scanFenceBlocks(state: EditorState): FenceBlock[] {
 		const codeStartLine = lineNumber + 1;
 		const codeEndLine = hasClosing ? endLineNumber - 1 : doc.lines;
 		const hasCode = codeStartLine <= codeEndLine;
-		const codeFrom = hasCode ? doc.line(codeStartLine).from : line.to;
+		const codeFrom = hasCode ? doc.line(codeStartLine).from : doc.line(lineNumber).to;
 		const codeTo = hasCode ? doc.line(codeEndLine).to : codeFrom;
 
 		blocks.push({
 			language,
 			title,
+			prefix,
 			ignored: isIgnoredLanguage(language),
 			openLine: lineNumber,
-			openFrom: line.from,
+			openFrom: doc.line(lineNumber).from,
 			closeLine,
 			blockEndLine: closeLine ?? doc.lines,
 			codeStartLine,
@@ -303,6 +314,50 @@ function scanFenceBlocks(state: EditorState): FenceBlock[] {
 	}
 
 	return blocks;
+}
+
+const LIST_MARKER_PATTERN = /^[ \t]*(?:[-+*]|\d+[.)])[ \t]+/;
+
+/**
+ * Parse Live Preview fences. Standard fences and list fences are supported.
+ * Indented code blocks are ignored unless a nearby list marker confirms the
+ * indentation belongs to a list item.
+ */
+function parseLiveFenceLine(doc: Text, lineNumber: number): FenceInfo | null {
+	const text = doc.line(lineNumber).text;
+	const standard = parseFenceLine(text);
+
+	if (standard) {
+		return standard;
+	}
+
+	const indent = /^([ \t]{4,})/.exec(text)?.[1];
+	if (!indent || !hasListContext(doc, lineNumber, indent.length)) {
+		return null;
+	}
+
+	return parseSourceFenceLine(text);
+}
+
+function hasListContext(doc: Text, lineNumber: number, indent: number): boolean {
+	for (let number = lineNumber - 1; number >= 1 && number >= lineNumber - 12; number--) {
+		const text = doc.line(number).text;
+
+		if (!text.trim()) {
+			continue;
+		}
+
+		if (LIST_MARKER_PATTERN.test(text)) {
+			return true;
+		}
+
+		const leading = /^[ \t]*/.exec(text)?.[0].length ?? 0;
+		if (leading < indent) {
+			return false;
+		}
+	}
+
+	return false;
 }
 
 function getVisibleLineRanges(view: EditorView): VisibleLineRange[] {
@@ -359,6 +414,7 @@ class CodeBlockToolbarWidget extends WidgetType {
 		return (
 			other.block.language === this.block.language &&
 			other.block.title === this.block.title &&
+			other.block.prefix === this.block.prefix &&
 			other.block.from === this.block.from &&
 			other.block.to === this.block.to &&
 			other.block.doc === this.block.doc &&
@@ -368,10 +424,17 @@ class CodeBlockToolbarWidget extends WidgetType {
 
 	toDOM(): HTMLElement {
 		const wrapper = createDiv({ cls: `${PREFIX}-live-wrapper` });
+		const rawCode = this.block.doc.sliceString(this.block.from, this.block.to);
+		const codeText = this.block.prefix
+			? rawCode
+					.split('\n')
+					.map((line) => stripFencePrefix(line, this.block.prefix))
+					.join('\n')
+			: rawCode;
 		const toolbar = createToolbar({
 			settings: this.settings,
 			language: this.block.language,
-			codeText: this.block.doc.sliceString(this.block.from, this.block.to),
+			codeText,
 			title: this.block.title,
 		});
 
