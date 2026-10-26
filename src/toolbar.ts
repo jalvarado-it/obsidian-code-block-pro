@@ -9,7 +9,6 @@ import type { CodeBlockProSettings } from './settings';
 
 const PREFIX = 'cbp';
 const COPIED_FEEDBACK_MS = 1500;
-const COLLAPSE_LINE_THRESHOLD = 24;
 
 export interface ToolbarOptions {
 	settings: CodeBlockProSettings;
@@ -31,7 +30,11 @@ export function createToolbar(options: ToolbarOptions): HTMLElement | null {
 	const displayLanguage = getLanguageLabel(options.language);
 	const normalizedLanguage = normalizeLanguage(options.language) || 'text';
 	const showLanguage = settings.showLanguageLabel;
-	const showCollapse = collapsible && countLines(codeText) > COLLAPSE_LINE_THRESHOLD;
+	const lineCount = countLines(codeText);
+	const showCollapse =
+		collapsible &&
+		lineCount > settings.collapseAfterLines &&
+		lineCount > settings.collapsedLines;
 	const refresh = options.onRefresh;
 	const showRefresh =
 		options.refreshable === true &&

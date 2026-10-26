@@ -52,6 +52,7 @@ export function decorateCodeBlocks(container: HTMLElement, settings: CodeBlockPr
 		pre.setAttribute(PROCESSED_ATTRIBUTE, 'true');
 
 		wrapper = parent.createDiv({ cls: `${PREFIX}-block` });
+		wrapper.style.setProperty(`--${PREFIX}-collapsed-lines`, String(settings.collapsedLines));
 		parent.insertBefore(wrapper, pre);
 
 		if (toolbar) {
@@ -78,21 +79,23 @@ export function decorateCodeBlocks(container: HTMLElement, settings: CodeBlockPr
 		}
 
 		codeArea.appendChild(pre);
-
-		if (gutter) {
-			syncGutterMetrics(pre, code, gutter);
-		}
+		syncCodeBlockMetrics(pre, code, gutter);
 	}
 }
 
 /**
- * Match the gutter to the rendered code metrics.
+ * Match the gutter and collapsed height to the rendered code metrics.
  *
  * Themes can override the code font size or line-height independently from
  * Obsidian's global variables. Reading those values after insertion keeps every
- * number on the same baseline as its code line.
+ * number on the same baseline and makes the configured collapsed line count
+ * independent of the theme.
  */
-function syncGutterMetrics(pre: HTMLElement, code: HTMLElement, gutter: HTMLElement): void {
+function syncCodeBlockMetrics(
+	pre: HTMLElement,
+	code: HTMLElement,
+	gutter: HTMLElement | null,
+): void {
 	const apply = (): void => {
 		const view = pre.ownerDocument.defaultView;
 		const preStyle = view?.getComputedStyle(pre) ?? getComputedStyle(pre);
@@ -100,15 +103,26 @@ function syncGutterMetrics(pre: HTMLElement, code: HTMLElement, gutter: HTMLElem
 		const top = parseLength(preStyle.borderTopWidth) + parseLength(preStyle.paddingTop);
 		const bottom = parseLength(preStyle.borderBottomWidth) + parseLength(preStyle.paddingBottom);
 		const lineHeight = Math.max(parseLength(preStyle.lineHeight), parseLength(codeStyle.lineHeight));
+		const area = pre.parentElement;
 
-		gutter.style.setProperty(
-			'--cbp-gutter-line-height',
-			lineHeight > 0 ? `${lineHeight}px` : codeStyle.lineHeight,
-		);
-		gutter.style.setProperty('--cbp-gutter-font-size', codeStyle.fontSize);
-		gutter.style.setProperty('--cbp-gutter-font-family', codeStyle.fontFamily);
-		gutter.style.setProperty('--cbp-gutter-padding-top', `${top}px`);
-		gutter.style.setProperty('--cbp-gutter-padding-bottom', `${bottom}px`);
+		if (area) {
+			area.style.setProperty(
+				'--cbp-code-line-height',
+				lineHeight > 0 ? `${lineHeight}px` : codeStyle.lineHeight,
+			);
+			area.style.setProperty('--cbp-code-padding', `${top + bottom}px`);
+		}
+
+		if (gutter?.isConnected) {
+			gutter.style.setProperty(
+				'--cbp-gutter-line-height',
+				lineHeight > 0 ? `${lineHeight}px` : codeStyle.lineHeight,
+			);
+			gutter.style.setProperty('--cbp-gutter-font-size', codeStyle.fontSize);
+			gutter.style.setProperty('--cbp-gutter-font-family', codeStyle.fontFamily);
+			gutter.style.setProperty('--cbp-gutter-padding-top', `${top}px`);
+			gutter.style.setProperty('--cbp-gutter-padding-bottom', `${bottom}px`);
+		}
 	};
 
 	apply();
@@ -116,7 +130,7 @@ function syncGutterMetrics(pre: HTMLElement, code: HTMLElement, gutter: HTMLElem
 	// The first render can happen before the theme styles are fully resolved.
 	// Re-measure on the next frame so a themed line-height or padding is applied.
 	pre.ownerDocument.defaultView?.requestAnimationFrame(() => {
-		if (pre.isConnected && gutter.isConnected) {
+		if (pre.isConnected) {
 			apply();
 		}
 	});
@@ -138,12 +152,15 @@ export function refreshCodeBlockMetrics(block: HTMLElement): void {
 	const code = pre?.querySelector<HTMLElement>('code');
 	const gutter = block.querySelector<HTMLElement>(`.${PREFIX}-line-numbers`);
 
-	if (!pre || !code || !gutter) {
+	if (!pre || !code) {
 		return;
 	}
 
-	gutter.setText(buildLineNumbers(countLines(code.textContent ?? '')));
-	syncGutterMetrics(pre, code, gutter);
+	if (gutter) {
+		gutter.setText(buildLineNumbers(countLines(code.textContent ?? '')));
+	}
+
+	syncCodeBlockMetrics(pre, code, gutter);
 }
 
 function buildLineNumbers(lineCount: number): string {

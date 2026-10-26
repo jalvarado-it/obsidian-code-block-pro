@@ -11,7 +11,8 @@ fence declares one, the language name.
   the copied text.
 - Automatic line-number realignment when Obsidian reapplies a theme or CSS,
   plus a manual refresh control in reading view.
-- Collapsible long code blocks in reading view.
+- Collapsible long code blocks in reading view, with configurable threshold and
+  collapsed height.
 - Works in reading view and Live Preview.
 - Theme-aware container, header, and controls built on Obsidian CSS variables.
 - Copy, language label, and line numbers can be disabled independently.
@@ -108,6 +109,8 @@ saving** command, then enable the plugin under **Settings → Community plugins*
 | Setting | Default | Description |
 | --- | --- | --- |
 | Line numbers | On | Show line numbers in a gutter. Numbered reading view blocks scroll horizontally instead of wrapping. |
+| Collapse after lines | 24 | Show the collapse control for blocks with more lines than this. |
+| Collapsed lines | 14 | Number of code lines visible while a block is collapsed. |
 | Copy button | On | Add a button to copy the code block to the clipboard. |
 | Language label | On | Show the language declared in the code fence. |
 

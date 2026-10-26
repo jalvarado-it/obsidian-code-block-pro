@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-25
+
+### Added
+
+- Configurable threshold for showing the collapse control (1–1000 lines).
+- Configurable number of code lines visible while a block is collapsed
+  (1–1000).
+
 ## [0.3.3] - 2026-10-25
 
 ### Added

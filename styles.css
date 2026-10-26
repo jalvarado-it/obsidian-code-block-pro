@@ -345,7 +345,14 @@
 /* Collapse ---------------------------------------------------------------- */
 
 .cbp-block.is-collapsed .cbp-code-area {
-	max-height: min(22rem, 60vh);
+	max-height: calc(
+		var(--cbp-collapsed-lines, 14) * var(--cbp-code-line-height, 24px) +
+			var(--cbp-code-padding, 24px)
+	);
+	overflow: hidden;
+}
+
+.cbp-block.is-collapsed .cbp-code-area > pre {
 	overflow: hidden;
 }
 
@@ -453,6 +460,10 @@
 }
 
 /* Responsive -------------------------------------------------------------- */
+
+input.cbp-settings-number {
+	width: 6em;
+}
 
 @media (pointer: coarse) {
 	.cbp-toolbar {

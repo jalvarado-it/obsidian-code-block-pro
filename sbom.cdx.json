@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:3eb4e2cd-dbd1-40f4-836d-2343eedc7b4d",
+  "serialNumber": "urn:uuid:89df2ae9-b676-4995-9e55-19b031564ab4",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-10-26T03:46:15.802Z",
+    "timestamp": "2026-10-26T04:04:05.397Z",
     "lifecycles": [
       {
         "phase": "pre-build"
@@ -19,14 +19,14 @@
       }
     ],
     "component": {
-      "bom-ref": "code-block-pro@0.3.3",
+      "bom-ref": "code-block-pro@0.4.0",
       "type": "application",
       "name": "obsidian-code-block-pro",
-      "version": "0.3.3",
+      "version": "0.4.0",
       "scope": "required",
       "author": "Jesus Alvarado",
       "description": "Enhance fenced code blocks with copy buttons and language labels.",
-      "purl": "pkg:npm/code-block-pro@0.3.3",
+      "purl": "pkg:npm/code-block-pro@0.4.0",
       "properties": [],
       "externalReferences": [],
       "licenses": [
@@ -11625,7 +11625,7 @@
   ],
   "dependencies": [
     {
-      "ref": "code-block-pro@0.3.3",
+      "ref": "code-block-pro@0.4.0",
       "dependsOn": [
         "@codemirror/state@6.7.6",
         "@codemirror/view@6.43.13",
