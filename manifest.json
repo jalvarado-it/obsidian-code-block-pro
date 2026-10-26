@@ -1,7 +1,7 @@
 {
 	"id": "code-block-pro",
 	"name": "Code Block Pro",
-	"version": "0.8.0",
+	"version": "0.8.1",
 	"minAppVersion": "1.5.0",
 	"description": "Enhance fenced code blocks with titles, copy/download actions, line numbers, and collapsible headers.",
 	"author": "Jesus Alvarado",
