@@ -10,6 +10,7 @@
 		"deploy": "npm run build && node scripts/install.mjs",
 		"install:vault": "node scripts/install.mjs",
 		"lint": "eslint .",
+		"test": "vitest run",
 		"audit": "npm audit",
 		"sbom": "npm sbom --sbom-format cyclonedx --sbom-type application --package-lock-only > sbom.cdx.json",
 		"sbom:spdx": "npm sbom --sbom-format spdx --sbom-type application --package-lock-only > sbom.spdx.json",
@@ -42,6 +43,7 @@
 		"jiti": "^2.6.1",
 		"obsidian": "^1.14.4",
 		"typescript": "^5.9.3",
-		"typescript-eslint": "^8.59.1"
+		"typescript-eslint": "^8.59.1",
+		"vitest": "^5.0.5"
 	}
 }
