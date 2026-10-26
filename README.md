@@ -36,7 +36,7 @@ Requires Obsidian 1.5.0 or later.
 
    ```bash
    cd /path/to/vault/.obsidian/plugins
-   git clone <repository-url> code-block-pro
+   git clone https://github.com/jalvarado-it/obsidian-code-block-pro.git code-block-pro
    cd code-block-pro
    ```
 
