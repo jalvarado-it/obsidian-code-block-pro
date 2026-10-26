@@ -53,6 +53,17 @@ export function decorateCodeBlocks(container: HTMLElement, settings: CodeBlockPr
 
 		wrapper = parent.createDiv({ cls: `${PREFIX}-block` });
 		wrapper.style.setProperty(`--${PREFIX}-collapsed-lines`, String(settings.collapsedLines));
+
+		const scrollLines =
+			settings.scrollAfterLines > 0
+				? Math.max(settings.scrollAfterLines, settings.collapsedLines)
+				: 0;
+
+		if (scrollLines > 0 && countLines(codeText) > scrollLines) {
+			wrapper.addClass(`${PREFIX}-scrollable`);
+		}
+
+		wrapper.style.setProperty(`--${PREFIX}-scroll-lines`, String(scrollLines));
 		parent.insertBefore(wrapper, pre);
 
 		if (toolbar) {

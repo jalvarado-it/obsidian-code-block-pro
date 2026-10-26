@@ -171,6 +171,11 @@ function addCollapseButton(actions: HTMLElement): void {
 
 		const collapsed = block.classList.toggle('is-collapsed');
 		const nextLabel = collapsed ? 'Expand code block' : label;
+		const area = block.querySelector<HTMLElement>(`.${PREFIX}-code-area`);
+
+		if (area) {
+			area.scrollTop = 0;
+		}
 
 		setIcon(button, collapsed ? 'chevron-up' : 'chevron-down');
 		setTooltip(button, nextLabel);

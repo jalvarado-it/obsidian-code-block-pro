@@ -290,7 +290,7 @@
 .cbp-code-area {
 	position: relative;
 	display: flex;
-	align-items: stretch;
+	align-items: flex-start;
 	background-color: var(--code-background);
 }
 
@@ -340,6 +340,16 @@
 	white-space: pre;
 	user-select: none;
 	overflow: hidden;
+}
+
+/* Scroll ------------------------------------------------------------------ */
+
+.cbp-block.cbp-scrollable:not(.is-collapsed) .cbp-code-area {
+	max-height: calc(
+		var(--cbp-scroll-lines, 0) * var(--cbp-code-line-height, 24px) +
+			var(--cbp-code-padding, 24px)
+	);
+	overflow-y: auto;
 }
 
 /* Collapse ---------------------------------------------------------------- */

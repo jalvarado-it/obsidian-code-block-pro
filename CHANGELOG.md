@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-25
+
+### Added
+
+- `Scroll after lines` setting for reading view. It defaults to the same
+  initial value as `Collapse after lines` (24), and 0 disables vertical
+  scrolling; the effective height is never less than `Collapsed lines`.
+
 ## [0.4.0] - 2026-10-25
 
 ### Added

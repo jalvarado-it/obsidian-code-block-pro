@@ -13,6 +13,8 @@ fence declares one, the language name.
   plus a manual refresh control in reading view.
 - Collapsible long code blocks in reading view, with configurable threshold and
   collapsed height.
+- Optional vertical scrolling after a configurable number of lines in reading
+  view.
 - Works in reading view and Live Preview.
 - Theme-aware container, header, and controls built on Obsidian CSS variables.
 - Copy, language label, and line numbers can be disabled independently.
@@ -111,6 +113,7 @@ saving** command, then enable the plugin under **Settings → Community plugins*
 | Line numbers | On | Show line numbers in a gutter. Numbered reading view blocks scroll horizontally instead of wrapping. |
 | Collapse after lines | 24 | Show the collapse control for blocks with more lines than this. |
 | Collapsed lines | 14 | Number of code lines visible while a block is collapsed. |
+| Scroll after lines | 24 | Add a vertical scrollbar after this many lines. Defaults to the same value as Collapse after lines. 0 disables it. The effective height is at least Collapsed lines. |
 | Copy button | On | Add a button to copy the code block to the clipboard. |
 | Language label | On | Show the language declared in the code fence. |
 
