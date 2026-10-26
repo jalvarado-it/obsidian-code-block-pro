@@ -29,3 +29,7 @@ data.json
 .agents/
 .claude/
 skills-lock.json
+
+# Local design references and evidence
+reference/
+evidence/
