@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-10-25
+
+### Fixed
+
+- Block titles now appear in Reading View when Obsidian's section information
+  is unavailable or does not include the code fence. The plugin falls back to
+  the note source and matches the block by language and normalized code.
+
+## [0.7.0] - 2026-10-25
+
+### Added
+
+- Optional block title from the text after the language in the code fence, for
+  example ` ```javascript API client `, shown after the language pill in reading
+  view and Live Preview.
+- `Block title` setting, enabled by default. The title stays visible when the
+  language label is disabled, and long titles truncate with a tooltip.
+
 ## [0.6.1] - 2026-10-25
 
 ### Changed

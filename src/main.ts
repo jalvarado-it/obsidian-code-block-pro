@@ -17,9 +17,9 @@ export default class CodeBlockProPlugin extends Plugin {
 		await this.loadSettings();
 
 		// Reading view and rendered embeds.
-		this.registerMarkdownPostProcessor((element) => {
-			decorateCodeBlocks(element, this.settings);
-		});
+		this.registerMarkdownPostProcessor((element, context) =>
+			decorateCodeBlocks(element, this.settings, context, this.app),
+		);
 
 		// Live Preview, where code blocks are CodeMirror content instead of <pre>.
 		this.registerEditorExtension(

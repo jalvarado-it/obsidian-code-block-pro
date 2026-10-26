@@ -1,6 +1,6 @@
 {
 	"name": "code-block-pro",
-	"version": "0.6.1",
+	"version": "0.7.1",
 	"description": "Enhance fenced code blocks with copy buttons and language labels.",
 	"main": "main.js",
 	"type": "module",

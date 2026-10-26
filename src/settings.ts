@@ -17,6 +17,7 @@ export interface CodeBlockProSettings {
 	showCopyButton: boolean;
 	showDownloadButton: boolean;
 	showLanguageLabel: boolean;
+	showBlockTitle: boolean;
 }
 
 export const DEFAULT_SETTINGS: CodeBlockProSettings = {
@@ -27,6 +28,7 @@ export const DEFAULT_SETTINGS: CodeBlockProSettings = {
 	showCopyButton: true,
 	showDownloadButton: true,
 	showLanguageLabel: true,
+	showBlockTitle: true,
 };
 
 /**
@@ -65,6 +67,7 @@ export function normalizeSettings(value: unknown): CodeBlockProSettings {
 			DEFAULT_SETTINGS.showDownloadButton,
 		),
 		showLanguageLabel: readBoolean(record.showLanguageLabel, DEFAULT_SETTINGS.showLanguageLabel),
+		showBlockTitle: readBoolean(record.showBlockTitle, DEFAULT_SETTINGS.showBlockTitle),
 	};
 }
 
@@ -186,6 +189,15 @@ export class SettingTab extends PluginSettingTab {
 					await this.updateSetting('showLanguageLabel', value);
 				}),
 			);
+
+		new Setting(containerEl)
+			.setName('Block title')
+			.setDesc('Show the text after the language in the code fence as the block title.')
+			.addToggle((toggle) =>
+				toggle.setValue(this.plugin.settings.showBlockTitle).onChange(async (value) => {
+					await this.updateSetting('showBlockTitle', value);
+				}),
+			);
 	}
 
 	/**
@@ -273,6 +285,15 @@ export class SettingTab extends PluginSettingTab {
 							defaultValue: DEFAULT_SETTINGS.showLanguageLabel,
 						},
 					},
+					{
+						name: 'Block title',
+						desc: 'Show the text after the language in the code fence as the block title.',
+						control: {
+							type: 'toggle',
+							key: 'showBlockTitle',
+							defaultValue: DEFAULT_SETTINGS.showBlockTitle,
+						},
+					},
 				],
 			},
 		];
@@ -303,7 +324,8 @@ export class SettingTab extends PluginSettingTab {
 			key !== 'showLineNumbers' &&
 			key !== 'showCopyButton' &&
 			key !== 'showDownloadButton' &&
-			key !== 'showLanguageLabel'
+			key !== 'showLanguageLabel' &&
+			key !== 'showBlockTitle'
 		) {
 			return;
 		}

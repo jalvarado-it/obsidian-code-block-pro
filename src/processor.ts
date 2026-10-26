@@ -1,9 +1,13 @@
+import { TFile } from 'obsidian';
+import type { App, MarkdownPostProcessorContext } from 'obsidian';
+import { findFenceTitleMatch } from './fence';
 import { isIgnoredLanguage } from './language';
 import type { CodeBlockProSettings } from './settings';
 import { countLines, createToolbar } from './toolbar';
 
 const PREFIX = 'cbp';
 const PROCESSED_ATTRIBUTE = 'data-code-block-pro';
+const PENDING_ATTRIBUTE = 'data-code-block-pro-pending';
 const IGNORED_CONTAINERS = '.block-language-mermaid, .block-language-dataview, .block-language-dataviewjs, .block-language-query';
 
 /**
@@ -12,16 +16,43 @@ const IGNORED_CONTAINERS = '.block-language-mermaid, .block-language-dataview, .
  * Obsidian calls post-processors again on every render, so blocks are marked
  * with an attribute to keep the decoration from being added twice.
  */
-export function decorateCodeBlocks(container: HTMLElement, settings: CodeBlockProSettings): void {
-	if (!settings.showCopyButton && !settings.showLanguageLabel && !settings.showLineNumbers) {
+export async function decorateCodeBlocks(
+	container: HTMLElement,
+	settings: CodeBlockProSettings,
+	context?: MarkdownPostProcessorContext,
+	app?: App,
+): Promise<void> {
+	if (
+		!settings.showCopyButton &&
+		!settings.showDownloadButton &&
+		!settings.showLanguageLabel &&
+		!settings.showLineNumbers &&
+		!settings.showBlockTitle
+	) {
 		return;
 	}
+
+	let sourceText: string | null = null;
+	const readSourceText = async (): Promise<string> => {
+		if (sourceText !== null) {
+			return sourceText;
+		}
+
+		sourceText = await readSource(app, context?.sourcePath);
+		return sourceText;
+	};
 
 	for (const code of container.querySelectorAll<HTMLElement>('pre > code')) {
 		const pre = code.parentElement;
 		const parent = pre?.parentElement;
 
-		if (!pre || !parent || pre.hasAttribute(PROCESSED_ATTRIBUTE) || pre.closest(IGNORED_CONTAINERS)) {
+		if (
+			!pre ||
+			!parent ||
+			pre.hasAttribute(PROCESSED_ATTRIBUTE) ||
+			pre.hasAttribute(PENDING_ATTRIBUTE) ||
+			pre.closest(IGNORED_CONTAINERS)
+		) {
 			continue;
 		}
 
@@ -31,11 +62,49 @@ export function decorateCodeBlocks(container: HTMLElement, settings: CodeBlockPr
 		}
 
 		const codeText = code.textContent ?? '';
+		let title = '';
+
+		if (settings.showBlockTitle) {
+			let resolved = false;
+
+			if (context) {
+				for (const element of [pre.parentElement, pre, container]) {
+					if (!element) {
+						continue;
+					}
+
+					const text = getSectionText(context, element);
+					if (text === null) {
+						continue;
+					}
+
+					const match = findFenceTitleMatch(text, language, codeText);
+					if (match.found) {
+						title = match.title;
+						resolved = true;
+						break;
+					}
+				}
+			}
+
+			if (!resolved) {
+				pre.setAttribute(PENDING_ATTRIBUTE, 'true');
+
+				try {
+					const source = await readSourceText();
+					title = findFenceTitleMatch(source, language, codeText).title;
+				} finally {
+					pre.removeAttribute(PENDING_ATTRIBUTE);
+				}
+			}
+		}
+
 		let wrapper: HTMLElement | null = null;
 		const toolbar = createToolbar({
 			settings,
 			language,
 			codeText,
+			title,
 			collapsible: true,
 			refreshable: settings.showLineNumbers,
 			onRefresh: () => {
@@ -181,4 +250,32 @@ function buildLineNumbers(lineCount: number): string {
 function getLanguage(code: HTMLElement): string {
 	const match = /(?:^|\s)language-([^\s]+)/.exec(code.className);
 	return match?.[1] ?? '';
+}
+
+function getSectionText(
+	context: MarkdownPostProcessorContext,
+	element: HTMLElement,
+): string | null {
+	try {
+		return context.getSectionInfo(element)?.text ?? null;
+	} catch {
+		return null;
+	}
+}
+
+async function readSource(app: App | undefined, sourcePath: string | undefined): Promise<string> {
+	if (!app || !sourcePath) {
+		return '';
+	}
+
+	const file = app.vault.getAbstractFileByPath(sourcePath);
+	if (!(file instanceof TFile)) {
+		return '';
+	}
+
+	try {
+		return await app.vault.cachedRead(file);
+	} catch {
+		return '';
+	}
 }

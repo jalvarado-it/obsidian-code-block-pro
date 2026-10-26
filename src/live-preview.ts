@@ -3,6 +3,7 @@ import type { EditorState, Extension, Line } from '@codemirror/state';
 import { Decoration, EditorView, ViewPlugin, WidgetType } from '@codemirror/view';
 import type { DecorationSet, ViewUpdate } from '@codemirror/view';
 import { editorLivePreviewField } from 'obsidian';
+import { isClosingFence, parseFenceLine } from './fence';
 import { isIgnoredLanguage } from './language';
 import type { CodeBlockProSettings } from './settings';
 import { createToolbar } from './toolbar';
@@ -10,11 +11,11 @@ import { createToolbar } from './toolbar';
 const PREFIX = 'cbp';
 const LIVE_PREVIEW_CLASS = `${PREFIX}-live-preview`;
 const LINE_NUMBERS_CLASS = `${PREFIX}-live-numbers`;
-const FENCE_OPEN_PATTERN = /^ {0,3}(`{3,}|~{3,})\s*([^\s`]*)/;
 
 interface CodeBlock {
 	language: string;
 	code: string;
+	title: string;
 }
 
 interface Range {
@@ -84,7 +85,10 @@ export function createLivePreviewExtension(
 }
 
 function buildDecorations(state: EditorState, settings: CodeBlockProSettings): DecorationSet {
-	if (!settings.showCopyButton && !settings.showLanguageLabel) {
+	const hasControls =
+		settings.showCopyButton || settings.showDownloadButton || settings.showLanguageLabel;
+
+	if (!hasControls && !settings.showBlockTitle) {
 		return Decoration.none;
 	}
 
@@ -94,21 +98,16 @@ function buildDecorations(state: EditorState, settings: CodeBlockProSettings): D
 
 	while (lineNumber <= doc.lines) {
 		const line = doc.line(lineNumber);
-		const opening = FENCE_OPEN_PATTERN.exec(line.text);
+		const opening = parseFenceLine(line.text);
 
 		if (!opening) {
 			lineNumber++;
 			continue;
 		}
 
-		const fence = opening[1];
-		if (!fence) {
-			lineNumber++;
-			continue;
-		}
-
-		const language = opening[2] ?? '';
+		const { fence, language, title } = opening;
 		const ignored = isIgnoredLanguage(language);
+		const showTitle = settings.showBlockTitle && title !== '';
 		const codeLines: string[] = [];
 		let endLineNumber = lineNumber + 1;
 
@@ -122,12 +121,15 @@ function buildDecorations(state: EditorState, settings: CodeBlockProSettings): D
 			codeLines.push(codeLine.text);
 		}
 
-		if (!ignored && (settings.showCopyButton || settings.showLanguageLabel)) {
+		if (!ignored && (hasControls || showTitle)) {
 			builder.add(
 				line.from,
 				line.from,
 				Decoration.widget({
-					widget: new CodeBlockToolbarWidget({ language, code: codeLines.join('\n') }, settings),
+					widget: new CodeBlockToolbarWidget(
+						{ language, code: codeLines.join('\n'), title },
+						settings,
+					),
 					block: true,
 					side: -1,
 				}),
@@ -141,9 +143,10 @@ function buildDecorations(state: EditorState, settings: CodeBlockProSettings): D
 }
 
 function buildLineDecorations(view: EditorView, settings: CodeBlockProSettings): DecorationSet {
-	const hasToolbar = settings.showCopyButton || settings.showLanguageLabel;
+	const hasControls =
+		settings.showCopyButton || settings.showDownloadButton || settings.showLanguageLabel;
 
-	if (!hasToolbar && !settings.showLineNumbers) {
+	if (!hasControls && !settings.showLineNumbers && !settings.showBlockTitle) {
 		return Decoration.none;
 	}
 
@@ -162,28 +165,26 @@ function buildLineDecorations(view: EditorView, settings: CodeBlockProSettings):
 
 	while (scanLine <= doc.lines) {
 		const line = doc.line(scanLine);
-		const opening = FENCE_OPEN_PATTERN.exec(line.text);
+		const opening = parseFenceLine(line.text);
 
 		if (!opening) {
 			scanLine++;
 			continue;
 		}
 
-		const fence = opening[1];
-		if (!fence) {
-			scanLine++;
-			continue;
-		}
-
-		const ignored = isIgnoredLanguage(opening[2] ?? '');
+		const { fence, language, title } = opening;
+		const ignored = isIgnoredLanguage(language);
+		const showTitle = settings.showBlockTitle && title !== '';
+		const showToolbar = !ignored && (hasControls || showTitle);
+		const showBlock = !ignored && (settings.showLineNumbers || showToolbar);
 		let displayLine = 1;
 		let endLineNumber = scanLine + 1;
 		let endLine: Line | null = null;
 
-		if (!ignored && isLineVisible(line.from, line.to, visibleRanges)) {
+		if (showBlock && isLineVisible(line.from, line.to, visibleRanges)) {
 			const attributes: Record<string, string> = { 'data-cbp-block': 'true' };
 
-			if (hasToolbar) {
+			if (showToolbar) {
 				attributes['data-cbp-toolbar'] = 'true';
 			}
 
@@ -202,7 +203,7 @@ function buildLineDecorations(view: EditorView, settings: CodeBlockProSettings):
 				break;
 			}
 
-			if (!ignored && isLineVisible(codeLine.from, codeLine.to, visibleRanges)) {
+			if (showBlock && isLineVisible(codeLine.from, codeLine.to, visibleRanges)) {
 				const attributes: Record<string, string> = { 'data-cbp-block': 'true' };
 
 				if (settings.showLineNumbers) {
@@ -215,7 +216,7 @@ function buildLineDecorations(view: EditorView, settings: CodeBlockProSettings):
 			displayLine++;
 		}
 
-		if (!ignored && endLine && isLineVisible(endLine.from, endLine.to, visibleRanges)) {
+		if (showBlock && endLine && isLineVisible(endLine.from, endLine.to, visibleRanges)) {
 			builder.add(
 				endLine.from,
 				endLine.from,
@@ -235,27 +236,14 @@ function isLineVisible(from: number, to: number, ranges: readonly Range[]): bool
 
 function syncEditorClasses(view: EditorView, settings: CodeBlockProSettings): void {
 	const livePreview = view.state.field(editorLivePreviewField, false) ?? false;
-	const toolbarEnabled = settings.showCopyButton || settings.showLanguageLabel;
+	const toolbarEnabled =
+		settings.showCopyButton ||
+		settings.showDownloadButton ||
+		settings.showLanguageLabel ||
+		settings.showBlockTitle;
 
 	view.dom.classList.toggle(LIVE_PREVIEW_CLASS, livePreview && toolbarEnabled);
 	view.dom.classList.toggle(LINE_NUMBERS_CLASS, livePreview && settings.showLineNumbers);
-}
-
-function isClosingFence(line: string, fence: string): boolean {
-	const trimmed = line.trim();
-
-	if (trimmed.length < fence.length) {
-		return false;
-	}
-
-	const char = fence.charAt(0);
-	for (const value of trimmed) {
-		if (value !== char) {
-			return false;
-		}
-	}
-
-	return true;
 }
 
 class CodeBlockToolbarWidget extends WidgetType {
@@ -277,8 +265,10 @@ class CodeBlockToolbarWidget extends WidgetType {
 		return (
 			other.block.language === this.block.language &&
 			other.block.code === this.block.code &&
+			other.block.title === this.block.title &&
 			other.settings.showCopyButton === this.settings.showCopyButton &&
-			other.settings.showLanguageLabel === this.settings.showLanguageLabel
+			other.settings.showLanguageLabel === this.settings.showLanguageLabel &&
+			other.settings.showBlockTitle === this.settings.showBlockTitle
 		);
 	}
 
@@ -288,6 +278,7 @@ class CodeBlockToolbarWidget extends WidgetType {
 			settings: this.settings,
 			language: this.block.language,
 			codeText: this.block.code,
+			title: this.block.title,
 		});
 
 		if (!toolbar) {

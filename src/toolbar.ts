@@ -15,6 +15,7 @@ export interface ToolbarOptions {
 	settings: CodeBlockProSettings;
 	language: string;
 	codeText: string;
+	title?: string;
 	collapsible?: boolean;
 	refreshable?: boolean;
 	onRefresh?: () => void;
@@ -32,6 +33,7 @@ export function createToolbar(options: ToolbarOptions): HTMLElement | null {
 	const normalizedLanguage = normalizeLanguage(options.language) || 'text';
 	const showLanguage = settings.showLanguageLabel;
 	const showDownload = settings.showDownloadButton;
+	const displayTitle = settings.showBlockTitle ? (options.title ?? '').trim() : '';
 	const lineCount = countLines(codeText);
 	const showCollapse =
 		collapsible &&
@@ -43,7 +45,13 @@ export function createToolbar(options: ToolbarOptions): HTMLElement | null {
 		typeof refresh === 'function' &&
 		(settings.showCopyButton || showLanguage || showCollapse);
 
-	if (!settings.showCopyButton && !showLanguage && !showCollapse && !showDownload) {
+	if (
+		!settings.showCopyButton &&
+		!showLanguage &&
+		!showCollapse &&
+		!showDownload &&
+		!displayTitle
+	) {
 		return null;
 	}
 
@@ -69,6 +77,16 @@ export function createToolbar(options: ToolbarOptions): HTMLElement | null {
 
 		setLanguageIcon(iconEl, displayLanguage);
 		pill.createSpan({ cls: `${PREFIX}-language-label`, text: displayLanguage });
+	}
+
+	if (displayTitle) {
+		const titleEl = toolbar.createDiv({
+			cls: `${PREFIX}-title`,
+			text: displayTitle,
+			attr: { 'data-cbp-title': '' },
+		});
+
+		setTooltip(titleEl, displayTitle);
 	}
 
 	if (settings.showCopyButton || showCollapse || showRefresh || showDownload) {

@@ -1,11 +1,13 @@
 # Code Block Pro
 
 Add a small toolbar to every rendered code block: a copy button and, when the
-fence declares one, the language name.
+fence declares one, the language name and block title.
 
 ## Features
 
 - Compact header with a language badge, icon, and display name.
+- Optional block title from the text after the language in the fence, for
+  example ` ```javascript API client `.
 - Copy icon with confirmation and screen reader feedback.
 - Download button that saves the code block as `code.<language extension>`.
 - Line numbers in reading view and Live Preview, without changing the code or
@@ -18,7 +20,8 @@ fence declares one, the language name.
   view.
 - Works in reading view and Live Preview.
 - Theme-aware container, header, and controls built on Obsidian CSS variables.
-- Copy, language label, and line numbers can be disabled independently.
+- Copy, download, language label, block title, and line numbers can be disabled
+  independently.
 - Mermaid, Dataview, and DataviewJS blocks are left to their own processors.
 
 Requires Obsidian 1.5.0 or later.
@@ -93,6 +96,7 @@ saving** command, then enable the plugin under **Settings → Community plugins*
 .
 ├── src/
 │   ├── main.ts        # Plugin lifecycle, post-processor registration
+│   ├── fence.ts       # Fence language and block title parsing
 │   ├── language.ts    # Language names, icons, and ignored processors
 │   ├── live-preview.ts # CodeMirror 6 extension for Live Preview
 │   ├── processor.ts   # Reading view code block decoration
@@ -118,6 +122,7 @@ saving** command, then enable the plugin under **Settings → Community plugins*
 | Copy button | On | Add a button to copy the code block to the clipboard. |
 | Download button | On | Add a button to download the code block as a file (`code.<ext>`). |
 | Language label | On | Show the language declared in the code fence. |
+| Block title | On | Show the text after the language in the code fence as the block title. |
 
 ## Releasing
 
