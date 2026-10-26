@@ -52,11 +52,12 @@ export function decorateCodeBlocks(container: HTMLElement, settings: CodeBlockPr
 		}
 
 		const codeArea = wrapper.createDiv({ cls: `${PREFIX}-code-area` });
+		let gutter: HTMLElement | null = null;
 
 		if (settings.showLineNumbers) {
 			wrapper.addClass(`${PREFIX}-with-line-numbers`);
 
-			const gutter = codeArea.createDiv({
+			gutter = codeArea.createDiv({
 				cls: `${PREFIX}-line-numbers`,
 				attr: { 'aria-hidden': 'true' },
 			});
@@ -65,7 +66,53 @@ export function decorateCodeBlocks(container: HTMLElement, settings: CodeBlockPr
 		}
 
 		codeArea.appendChild(pre);
+
+		if (gutter) {
+			syncGutterMetrics(pre, code, gutter);
+		}
 	}
+}
+
+/**
+ * Match the gutter to the rendered code metrics.
+ *
+ * Themes can override the code font size or line-height independently from
+ * Obsidian's global variables. Reading those values after insertion keeps every
+ * number on the same baseline as its code line.
+ */
+function syncGutterMetrics(pre: HTMLElement, code: HTMLElement, gutter: HTMLElement): void {
+	const apply = (): void => {
+		const view = pre.ownerDocument.defaultView;
+		const preStyle = view?.getComputedStyle(pre) ?? getComputedStyle(pre);
+		const codeStyle = view?.getComputedStyle(code) ?? getComputedStyle(code);
+		const top = parseLength(preStyle.borderTopWidth) + parseLength(preStyle.paddingTop);
+		const bottom = parseLength(preStyle.borderBottomWidth) + parseLength(preStyle.paddingBottom);
+		const lineHeight = Math.max(parseLength(preStyle.lineHeight), parseLength(codeStyle.lineHeight));
+
+		gutter.style.setProperty(
+			'--cbp-gutter-line-height',
+			lineHeight > 0 ? `${lineHeight}px` : codeStyle.lineHeight,
+		);
+		gutter.style.setProperty('--cbp-gutter-font-size', codeStyle.fontSize);
+		gutter.style.setProperty('--cbp-gutter-font-family', codeStyle.fontFamily);
+		gutter.style.setProperty('--cbp-gutter-padding-top', `${top}px`);
+		gutter.style.setProperty('--cbp-gutter-padding-bottom', `${bottom}px`);
+	};
+
+	apply();
+
+	// The first render can happen before the theme styles are fully resolved.
+	// Re-measure on the next frame so a themed line-height or padding is applied.
+	pre.ownerDocument.defaultView?.requestAnimationFrame(() => {
+		if (pre.isConnected && gutter.isConnected) {
+			apply();
+		}
+	});
+}
+
+function parseLength(value: string): number {
+	const parsed = Number.parseFloat(value);
+	return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function buildLineNumbers(lineCount: number): string {

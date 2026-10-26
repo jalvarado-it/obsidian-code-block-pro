@@ -14,6 +14,31 @@ export const DEFAULT_SETTINGS: CodeBlockProSettings = {
 	showLanguageLabel: true,
 };
 
+/**
+ * Load only known boolean settings.
+ *
+ * data.json lives in the vault and can be edited by other tools. Reading known
+ * keys explicitly avoids prototype pollution and type confusion from malformed
+ * or hostile settings files.
+ */
+export function normalizeSettings(value: unknown): CodeBlockProSettings {
+	const record = isRecord(value) ? value : {};
+
+	return {
+		showLineNumbers: readBoolean(record.showLineNumbers, DEFAULT_SETTINGS.showLineNumbers),
+		showCopyButton: readBoolean(record.showCopyButton, DEFAULT_SETTINGS.showCopyButton),
+		showLanguageLabel: readBoolean(record.showLanguageLabel, DEFAULT_SETTINGS.showLanguageLabel),
+	};
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null;
+}
+
+function readBoolean(value: unknown, fallback: boolean): boolean {
+	return typeof value === 'boolean' ? value : fallback;
+}
+
 export class SettingTab extends PluginSettingTab {
 	private readonly plugin: CodeBlockProPlugin;
 

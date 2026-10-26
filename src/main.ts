@@ -2,10 +2,15 @@ import type { EditorView } from '@codemirror/view';
 import { MarkdownView, Plugin } from 'obsidian';
 import { createLivePreviewExtension, refreshDecorations } from './live-preview';
 import { decorateCodeBlocks } from './processor';
-import { DEFAULT_SETTINGS, SettingTab, type CodeBlockProSettings } from './settings';
+import {
+	DEFAULT_SETTINGS,
+	SettingTab,
+	normalizeSettings,
+	type CodeBlockProSettings,
+} from './settings';
 
 export default class CodeBlockProPlugin extends Plugin {
-	settings: CodeBlockProSettings = Object.assign({}, DEFAULT_SETTINGS);
+	settings: CodeBlockProSettings = { ...DEFAULT_SETTINGS };
 	private readonly editorViews = new Set<EditorView>();
 
 	async onload(): Promise<void> {
@@ -50,8 +55,7 @@ export default class CodeBlockProPlugin extends Plugin {
 	}
 
 	async loadSettings(): Promise<void> {
-		const stored = (await this.loadData()) as Partial<CodeBlockProSettings> | null;
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, stored ?? {});
+		this.settings = normalizeSettings(await this.loadData());
 	}
 
 	async saveSettings(): Promise<void> {

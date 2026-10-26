@@ -116,6 +116,22 @@ saving** command, then enable the plugin under **Settings → Community plugins*
 3. Create a GitHub release for the tag and attach `main.js`, `manifest.json`,
    and `styles.css`.
 
+## Security
+
+The plugin has no runtime npm dependencies. Obsidian and CodeMirror are
+provided by the host application, and stored settings are validated against a
+known boolean schema before use.
+
+```bash
+npm audit             # dependency vulnerabilities
+npm run sbom          # CycloneDX / build and test dependencies
+npm run sbom:spdx     # SPDX
+npm run sbom:runtime  # runtime-only CycloneDX
+```
+
+The generated `sbom.cdx.json`, `sbom.spdx.json`, and `sbom.runtime.cdx.json`
+files describe the dependency graph used to build and validate the plugin.
+
 ## License
 
 MIT © 2026 Jesus Alvarado

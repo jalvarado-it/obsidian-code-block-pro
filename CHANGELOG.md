@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-25
+
+### Security
+
+- Validate settings loaded from `data.json` against known boolean keys to
+  avoid prototype pollution and type confusion.
+- Override `moment` to 2.31.0 in the development lint chain
+  (GHSA-4p3w-j4w9-5jqw) and align CodeMirror packages with Obsidian's peer
+  versions.
+- Add reproducible CycloneDX and SPDX SBOM generation plus audit scripts.
+
+## [0.3.1] - 2026-10-25
+
+### Fixed
+
+- Align reading view line numbers with the rendered code line height, including
+  themes that override the code or pre line height.
+- Keep the gutter font, line height, and padding in sync with the code and stop
+  the last line numbers from being clipped or drifting.
+
 ## [0.3.0] - 2026-10-25
 
 ### Added

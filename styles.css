@@ -319,12 +319,13 @@
 	flex: none;
 	box-sizing: border-box;
 	width: var(--cbp-line-number-space);
-	padding: var(--size-4-3) var(--size-4-1) var(--size-4-3) 0;
+	padding: var(--cbp-gutter-padding-top, var(--size-4-3)) var(--size-4-1)
+		var(--cbp-gutter-padding-bottom, var(--size-4-3)) 0;
 	border-right: 1px solid var(--background-modifier-border);
 	color: var(--text-faint);
-	font-family: var(--font-monospace);
-	font-size: var(--code-size);
-	line-height: var(--line-height-normal);
+	font-family: var(--cbp-gutter-font-family, var(--font-monospace));
+	font-size: var(--cbp-gutter-font-size, var(--code-size));
+	line-height: var(--cbp-gutter-line-height, var(--line-height-normal));
 	text-align: right;
 	white-space: pre;
 	user-select: none;
