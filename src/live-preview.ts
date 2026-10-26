@@ -1,24 +1,50 @@
 import { RangeSetBuilder, StateEffect, StateField } from '@codemirror/state';
-import type { EditorState, Extension, Line } from '@codemirror/state';
+import type { EditorState, Extension, Text } from '@codemirror/state';
 import { Decoration, EditorView, ViewPlugin, WidgetType } from '@codemirror/view';
 import type { DecorationSet, ViewUpdate } from '@codemirror/view';
 import { editorLivePreviewField } from 'obsidian';
-import { isClosingFence, parseFenceLine } from './fence';
+import {
+	isClosingFence,
+	parseFenceLine,
+	parseSourceFenceLine,
+	stripFencePrefix,
+	type FenceInfo,
+} from './fence';
 import { isIgnoredLanguage } from './language';
+import { DEFAULT_SETTINGS } from './settings';
 import type { CodeBlockProSettings } from './settings';
 import { createToolbar } from './toolbar';
 
 const PREFIX = 'cbp';
 const LIVE_PREVIEW_CLASS = `${PREFIX}-live-preview`;
 const LINE_NUMBERS_CLASS = `${PREFIX}-live-numbers`;
+const EMPTY_BLOCKS: readonly FenceBlock[] = [];
 
-interface CodeBlock {
+interface FenceBlock {
 	language: string;
-	code: string;
 	title: string;
+	prefix: string;
+	ignored: boolean;
+	openLine: number;
+	openFrom: number;
+	closeLine: number | null;
+	blockEndLine: number;
+	codeStartLine: number;
+	codeEndLine: number;
+	codeFrom: number;
+	codeTo: number;
 }
 
-interface Range {
+interface ToolbarBlock {
+	language: string;
+	title: string;
+	prefix: string;
+	from: number;
+	to: number;
+	doc: Text;
+}
+
+interface VisibleLineRange {
 	from: number;
 	to: number;
 }
@@ -27,11 +53,34 @@ interface Range {
 export const refreshDecorations = StateEffect.define<null>();
 
 /**
+ * Parse the document once per change. Both toolbars and line numbers use this
+ * shared list, so cursor movement does not rescan the document.
+ */
+const blocksField = StateField.define<readonly FenceBlock[]>({
+	create: (state) => (isLivePreview(state) ? scanFenceBlocks(state) : EMPTY_BLOCKS),
+	update: (blocks, transaction) => {
+		const wasLive = isLivePreview(transaction.startState);
+		const isLive = isLivePreview(transaction.state);
+
+		if (!isLive) {
+			return EMPTY_BLOCKS;
+		}
+
+		if (transaction.docChanged || !wasLive) {
+			return scanFenceBlocks(transaction.state);
+		}
+
+		return blocks;
+	},
+});
+
+/**
  * Add the code block toolbar and line numbers to Live Preview.
  *
  * Live Preview renders fenced code blocks with CodeMirror instead of `<pre>`,
- * so reading view post-processors never see them. Toolbars use block widgets
- * from a state field; line numbers use line decorations from a view plugin.
+ * so reading view post-processors never see them. The fence list is parsed once
+ * per document change; toolbars and line numbers are derived from that shared
+ * list instead of scanning the document twice.
  */
 export function createLivePreviewExtension(
 	getSettings: () => CodeBlockProSettings,
@@ -40,9 +89,11 @@ export function createLivePreviewExtension(
 	const decorationsField = StateField.define<DecorationSet>({
 		create: (state) => buildDecorations(state, getSettings()),
 		update: (decorations, transaction) => {
-			const wasLive = transaction.startState.field(editorLivePreviewField, false) ?? false;
-			const isLive = transaction.state.field(editorLivePreviewField, false) ?? false;
-			const refreshRequested = transaction.effects.some((effect) => effect.is(refreshDecorations));
+			const wasLive = isLivePreview(transaction.startState);
+			const isLive = isLivePreview(transaction.state);
+			const refreshRequested = transaction.effects.some((effect) =>
+				effect.is(refreshDecorations),
+			);
 
 			if (transaction.docChanged || wasLive !== isLive || refreshRequested) {
 				return isLive ? buildDecorations(transaction.state, getSettings()) : Decoration.none;
@@ -66,7 +117,21 @@ export function createLivePreviewExtension(
 			}
 
 			update(update: ViewUpdate): void {
-				this.decorations = buildLineDecorations(update.view, getSettings());
+				const wasLive = isLivePreview(update.startState);
+				const isLive = isLivePreview(update.state);
+				const refreshRequested = update.transactions.some((transaction) =>
+					transaction.effects.some((effect) => effect.is(refreshDecorations)),
+				);
+
+				if (
+					update.docChanged ||
+					update.viewportChanged ||
+					wasLive !== isLive ||
+					refreshRequested
+				) {
+					this.decorations = buildLineDecorations(update.view, getSettings());
+				}
+
 				syncEditorClasses(update.view, getSettings());
 			}
 
@@ -81,176 +146,260 @@ export function createLivePreviewExtension(
 		},
 	);
 
-	return [decorationsField, viewExtension];
+	return [blocksField, decorationsField, viewExtension];
 }
 
 function buildDecorations(state: EditorState, settings: CodeBlockProSettings): DecorationSet {
-	const hasControls =
-		settings.showCopyButton || settings.showDownloadButton || settings.showLanguageLabel;
+	const blocks = state.field(blocksField, false) ?? EMPTY_BLOCKS;
+	const controls = hasToolbarControls(settings);
 
-	if (!hasControls && !settings.showBlockTitle) {
+	if (!controls && !settings.showBlockTitle) {
 		return Decoration.none;
 	}
 
-	const { doc } = state;
 	const builder = new RangeSetBuilder<Decoration>();
-	let lineNumber = 1;
 
-	while (lineNumber <= doc.lines) {
-		const line = doc.line(lineNumber);
-		const opening = parseFenceLine(line.text);
-
-		if (!opening) {
-			lineNumber++;
+	for (const block of blocks) {
+		if (block.ignored) {
 			continue;
 		}
 
-		const { fence, language, title } = opening;
-		const ignored = isIgnoredLanguage(language);
-		const showTitle = settings.showBlockTitle && title !== '';
-		const codeLines: string[] = [];
-		let endLineNumber = lineNumber + 1;
-
-		for (; endLineNumber <= doc.lines; endLineNumber++) {
-			const codeLine = doc.line(endLineNumber);
-
-			if (isClosingFence(codeLine.text, fence)) {
-				break;
-			}
-
-			codeLines.push(codeLine.text);
+		const showTitle = settings.showBlockTitle && block.title !== '';
+		if (!controls && !showTitle) {
+			continue;
 		}
 
-		if (!ignored && (hasControls || showTitle)) {
-			builder.add(
-				line.from,
-				line.from,
-				Decoration.widget({
-					widget: new CodeBlockToolbarWidget(
-						{ language, code: codeLines.join('\n'), title },
-						settings,
-					),
-					block: true,
-					side: -1,
-				}),
-			);
-		}
-
-		lineNumber = endLineNumber + 1;
+		builder.add(
+			block.openFrom,
+			block.openFrom,
+			Decoration.widget({
+				widget: new CodeBlockToolbarWidget(
+					{
+						language: block.language,
+						title: block.title,
+						prefix: block.prefix,
+						from: block.codeFrom,
+						to: block.codeTo,
+						doc: state.doc,
+					},
+					settings,
+				),
+				block: true,
+				side: -1,
+			}),
+		);
 	}
 
 	return builder.finish();
 }
 
 function buildLineDecorations(view: EditorView, settings: CodeBlockProSettings): DecorationSet {
-	const hasControls =
-		settings.showCopyButton || settings.showDownloadButton || settings.showLanguageLabel;
+	const controls = hasToolbarControls(settings);
 
-	if (!hasControls && !settings.showLineNumbers && !settings.showBlockTitle) {
+	if (!controls && !settings.showLineNumbers && !settings.showBlockTitle) {
 		return Decoration.none;
 	}
 
-	if (!view.state.field(editorLivePreviewField, false)) {
+	if (!isLivePreview(view.state)) {
 		return Decoration.none;
 	}
 
-	const visibleRanges = view.visibleRanges;
-	if (visibleRanges.length === 0) {
+	const blocks = view.state.field(blocksField, false) ?? EMPTY_BLOCKS;
+	const visibleLineRanges = getVisibleLineRanges(view);
+
+	if (blocks.length === 0 || visibleLineRanges.length === 0) {
 		return Decoration.none;
 	}
 
-	const { doc } = view.state;
 	const builder = new RangeSetBuilder<Decoration>();
-	let scanLine = 1;
+	let blockIndex = 0;
 
-	while (scanLine <= doc.lines) {
-		const line = doc.line(scanLine);
-		const opening = parseFenceLine(line.text);
-
-		if (!opening) {
-			scanLine++;
-			continue;
-		}
-
-		const { fence, language, title } = opening;
-		const ignored = isIgnoredLanguage(language);
-		const showTitle = settings.showBlockTitle && title !== '';
-		const showToolbar = !ignored && (hasControls || showTitle);
-		const showBlock = !ignored && (settings.showLineNumbers || showToolbar);
-		let displayLine = 1;
-		let endLineNumber = scanLine + 1;
-		let endLine: Line | null = null;
-
-		if (showBlock && isLineVisible(line.from, line.to, visibleRanges)) {
-			const attributes: Record<string, string> = { 'data-cbp-block': 'true' };
-
-			if (showToolbar) {
-				attributes['data-cbp-toolbar'] = 'true';
+	for (const range of visibleLineRanges) {
+		for (let lineNumber = range.from; lineNumber <= range.to; lineNumber++) {
+			while (
+				blockIndex < blocks.length &&
+				blocks[blockIndex]!.blockEndLine < lineNumber
+			) {
+				blockIndex++;
 			}
 
-			if (settings.showCopyButton) {
-				attributes['data-cbp-copy'] = 'true';
+			const block = blocks[blockIndex];
+
+			if (!block || block.openLine > lineNumber || block.ignored) {
+				continue;
+			}
+
+			const showTitle = settings.showBlockTitle && block.title !== '';
+			const showToolbar = controls || showTitle;
+			const showBlock = settings.showLineNumbers || showToolbar;
+
+			if (!showBlock) {
+				continue;
+			}
+
+			const line = view.state.doc.line(lineNumber);
+			const attributes: Record<string, string> = { 'data-cbp-block': 'true' };
+
+			if (lineNumber === block.openLine) {
+				if (showToolbar) {
+					attributes['data-cbp-toolbar'] = 'true';
+				}
+
+				if (settings.showCopyButton) {
+					attributes['data-cbp-copy'] = 'true';
+				}
+			} else if (block.closeLine === null || lineNumber !== block.closeLine) {
+				if (settings.showLineNumbers) {
+					attributes['data-cbp-line'] = String(
+						lineNumber - block.codeStartLine + 1,
+					);
+				}
 			}
 
 			builder.add(line.from, line.from, Decoration.line({ attributes }));
 		}
-
-		for (; endLineNumber <= doc.lines; endLineNumber++) {
-			const codeLine = doc.line(endLineNumber);
-
-			if (isClosingFence(codeLine.text, fence)) {
-				endLine = codeLine;
-				break;
-			}
-
-			if (showBlock && isLineVisible(codeLine.from, codeLine.to, visibleRanges)) {
-				const attributes: Record<string, string> = { 'data-cbp-block': 'true' };
-
-				if (settings.showLineNumbers) {
-					attributes['data-cbp-line'] = String(displayLine);
-				}
-
-				builder.add(codeLine.from, codeLine.from, Decoration.line({ attributes }));
-			}
-
-			displayLine++;
-		}
-
-		if (showBlock && endLine && isLineVisible(endLine.from, endLine.to, visibleRanges)) {
-			builder.add(
-				endLine.from,
-				endLine.from,
-				Decoration.line({ attributes: { 'data-cbp-block': 'true' } }),
-			);
-		}
-
-		scanLine = endLineNumber + 1;
 	}
 
 	return builder.finish();
 }
 
-function isLineVisible(from: number, to: number, ranges: readonly Range[]): boolean {
-	return ranges.some((range) => range.from <= to && range.to >= from);
+function scanFenceBlocks(state: EditorState): FenceBlock[] {
+	const { doc } = state;
+	const blocks: FenceBlock[] = [];
+	let lineNumber = 1;
+
+	while (lineNumber <= doc.lines) {
+		const opening = parseLiveFenceLine(doc, lineNumber);
+
+		if (!opening) {
+			lineNumber++;
+			continue;
+		}
+
+		const { fence, language, title, prefix } = opening;
+		let endLineNumber = lineNumber + 1;
+
+		for (; endLineNumber <= doc.lines; endLineNumber++) {
+			const line = stripFencePrefix(doc.line(endLineNumber).text, prefix);
+
+			if (isClosingFence(line, fence)) {
+				break;
+			}
+		}
+
+		const hasClosing = endLineNumber <= doc.lines;
+		const closeLine = hasClosing ? endLineNumber : null;
+		const codeStartLine = lineNumber + 1;
+		const codeEndLine = hasClosing ? endLineNumber - 1 : doc.lines;
+		const hasCode = codeStartLine <= codeEndLine;
+		const codeFrom = hasCode ? doc.line(codeStartLine).from : doc.line(lineNumber).to;
+		const codeTo = hasCode ? doc.line(codeEndLine).to : codeFrom;
+
+		blocks.push({
+			language,
+			title,
+			prefix,
+			ignored: isIgnoredLanguage(language),
+			openLine: lineNumber,
+			openFrom: doc.line(lineNumber).from,
+			closeLine,
+			blockEndLine: closeLine ?? doc.lines,
+			codeStartLine,
+			codeEndLine,
+			codeFrom,
+			codeTo,
+		});
+
+		lineNumber = (hasClosing ? endLineNumber : doc.lines) + 1;
+	}
+
+	return blocks;
+}
+
+const LIST_MARKER_PATTERN = /^[ \t]*(?:[-+*]|\d+[.)])[ \t]+/;
+
+/**
+ * Parse Live Preview fences. Standard fences and list fences are supported.
+ * Indented code blocks are ignored unless a nearby list marker confirms the
+ * indentation belongs to a list item.
+ */
+function parseLiveFenceLine(doc: Text, lineNumber: number): FenceInfo | null {
+	const text = doc.line(lineNumber).text;
+	const standard = parseFenceLine(text);
+
+	if (standard) {
+		return standard;
+	}
+
+	const indent = /^([ \t]{4,})/.exec(text)?.[1];
+	if (!indent || !hasListContext(doc, lineNumber, indent.length)) {
+		return null;
+	}
+
+	return parseSourceFenceLine(text);
+}
+
+function hasListContext(doc: Text, lineNumber: number, indent: number): boolean {
+	for (let number = lineNumber - 1; number >= 1 && number >= lineNumber - 12; number--) {
+		const text = doc.line(number).text;
+
+		if (!text.trim()) {
+			continue;
+		}
+
+		if (LIST_MARKER_PATTERN.test(text)) {
+			return true;
+		}
+
+		const leading = /^[ \t]*/.exec(text)?.[0].length ?? 0;
+		if (leading < indent) {
+			return false;
+		}
+	}
+
+	return false;
+}
+
+function getVisibleLineRanges(view: EditorView): VisibleLineRange[] {
+	const { doc } = view.state;
+	const ranges: VisibleLineRange[] = [];
+
+	for (const range of view.visibleRanges) {
+		const from = doc.lineAt(range.from).number;
+		const to = doc.lineAt(range.to).number;
+		const previous = ranges[ranges.length - 1];
+
+		if (previous && from <= previous.to + 1) {
+			previous.to = Math.max(previous.to, to);
+		} else {
+			ranges.push({ from, to });
+		}
+	}
+
+	return ranges;
+}
+
+function hasToolbarControls(settings: CodeBlockProSettings): boolean {
+	return settings.showCopyButton || settings.showDownloadButton || settings.showLanguageLabel;
+}
+
+function isLivePreview(state: EditorState): boolean {
+	return state.field(editorLivePreviewField, false) ?? false;
 }
 
 function syncEditorClasses(view: EditorView, settings: CodeBlockProSettings): void {
-	const livePreview = view.state.field(editorLivePreviewField, false) ?? false;
-	const toolbarEnabled =
-		settings.showCopyButton ||
-		settings.showDownloadButton ||
-		settings.showLanguageLabel ||
-		settings.showBlockTitle;
+	const livePreview = isLivePreview(view.state);
+	const toolbarEnabled = hasToolbarControls(settings) || settings.showBlockTitle;
 
 	view.dom.classList.toggle(LIVE_PREVIEW_CLASS, livePreview && toolbarEnabled);
 	view.dom.classList.toggle(LINE_NUMBERS_CLASS, livePreview && settings.showLineNumbers);
 }
 
 class CodeBlockToolbarWidget extends WidgetType {
-	private readonly block: CodeBlock;
+	private readonly block: ToolbarBlock;
 	private readonly settings: CodeBlockProSettings;
 
-	constructor(block: CodeBlock, settings: CodeBlockProSettings) {
+	constructor(block: ToolbarBlock, settings: CodeBlockProSettings) {
 		super();
 		this.block = block;
 		// Snapshot the settings so `eq` compares values instead of the live object.
@@ -264,20 +413,28 @@ class CodeBlockToolbarWidget extends WidgetType {
 
 		return (
 			other.block.language === this.block.language &&
-			other.block.code === this.block.code &&
 			other.block.title === this.block.title &&
-			other.settings.showCopyButton === this.settings.showCopyButton &&
-			other.settings.showLanguageLabel === this.settings.showLanguageLabel &&
-			other.settings.showBlockTitle === this.settings.showBlockTitle
+			other.block.prefix === this.block.prefix &&
+			other.block.from === this.block.from &&
+			other.block.to === this.block.to &&
+			other.block.doc === this.block.doc &&
+			settingsEqual(other.settings, this.settings)
 		);
 	}
 
 	toDOM(): HTMLElement {
 		const wrapper = createDiv({ cls: `${PREFIX}-live-wrapper` });
+		const rawCode = this.block.doc.sliceString(this.block.from, this.block.to);
+		const codeText = this.block.prefix
+			? rawCode
+					.split('\n')
+					.map((line) => stripFencePrefix(line, this.block.prefix))
+					.join('\n')
+			: rawCode;
 		const toolbar = createToolbar({
 			settings: this.settings,
 			language: this.block.language,
-			codeText: this.block.code,
+			codeText,
 			title: this.block.title,
 		});
 
@@ -285,8 +442,13 @@ class CodeBlockToolbarWidget extends WidgetType {
 			return wrapper;
 		}
 
-		toolbar.addClass(`${PREFIX}-toolbar--live`);
 		wrapper.appendChild(toolbar);
 		return wrapper;
 	}
+}
+
+function settingsEqual(a: CodeBlockProSettings, b: CodeBlockProSettings): boolean {
+	return (Object.keys(DEFAULT_SETTINGS) as Array<keyof CodeBlockProSettings>).every(
+		(key) => a[key] === b[key],
+	);
 }

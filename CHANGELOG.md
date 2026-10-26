@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-25
+
+### Added
+
+- Reading View resolves titles for fences inside callouts, blockquotes, and
+  indented lists; Live Preview supports indented list fences.
+- JSX and TSX download extensions (`code.jsx`, `code.tsx`).
+- Unit tests for fence parsing, nested prefixes, title matching, language
+  metadata, and settings normalization.
+
+### Changed
+
+- Live Preview parses fences once per document change and rebuilds line
+  decorations only for visible lines.
+- Reading View resolves titles synchronously when possible and defers source
+  lookups without delaying block controls.
+- Settings UI and declarative definitions share one metadata source.
+- Changing settings preserves preview scroll, collapse state, and per-block
+  scroll.
+- Copy feedback survives repeated clicks.
+- Line-number metrics skip unchanged gutters and use a numeric line-height
+  fallback.
+
+### Fixed
+
+- Download updates immediately in Live Preview.
+- Refresh is available when Download or Block title is the only other toolbar
+  content.
+
 ## [0.7.1] - 2026-10-25
 
 ### Fixed

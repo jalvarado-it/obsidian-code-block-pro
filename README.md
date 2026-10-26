@@ -19,6 +19,8 @@ fence declares one, the language name and block title.
 - Optional vertical scrolling after a configurable number of lines in reading
   view.
 - Works in reading view and Live Preview.
+- Reading View supports fenced blocks inside callouts, blockquotes, and indented
+  lists; Live Preview supports indented list fences.
 - Theme-aware container, header, and controls built on Obsidian CSS variables.
 - Copy, download, language label, block title, and line numbers can be disabled
   independently.
@@ -59,10 +61,20 @@ npm install
 npm run dev    # watch mode, rebuilds main.js on change
 npm run build  # type-check and production bundle
 npm run lint   # ESLint with eslint-plugin-obsidianmd
+npm test       # Vitest unit tests
 ```
 
 The build output is `main.js`, which is ignored by Git and attached to GitHub
 releases instead.
+
+### Testing
+
+```bash
+npm test
+```
+
+Unit tests cover fence parsing, nested prefixes, title matching, language
+metadata, and settings normalization.
 
 ### Local testing
 
@@ -100,7 +112,7 @@ saving** command, then enable the plugin under **Settings → Community plugins*
 │   ├── language.ts    # Language names, icons, and ignored processors
 │   ├── live-preview.ts # CodeMirror 6 extension for Live Preview
 │   ├── processor.ts   # Reading view code block decoration
-│   ├── toolbar.ts     # Shared header, copy, and collapse behavior
+│   ├── toolbar.ts     # Shared header, actions, and collapse behavior
 │   └── settings.ts    # Settings shape and settings tab
 ├── scripts/
 │   └── install.mjs    # Local vault installer

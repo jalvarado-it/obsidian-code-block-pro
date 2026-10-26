@@ -8,6 +8,12 @@ import {
 	normalizeSettings,
 	type CodeBlockProSettings,
 } from './settings';
+import { setCollapsed } from './toolbar';
+
+interface PreviewBlockState {
+	collapsed: boolean;
+	scrollTop: number;
+}
 
 export default class CodeBlockProPlugin extends Plugin {
 	settings: CodeBlockProSettings = { ...DEFAULT_SETTINGS };
@@ -67,14 +73,53 @@ export default class CodeBlockProPlugin extends Plugin {
 	refreshViews(): void {
 		this.app.workspace.iterateAllLeaves((leaf) => {
 			const { view } = leaf;
-			if (view instanceof MarkdownView) {
-				view.previewMode.rerender(true);
+			if (view instanceof MarkdownView && view.getMode() === 'preview') {
+				this.refreshPreviewView(view);
 			}
 		});
 
 		for (const view of this.editorViews) {
 			view.dispatch({ effects: refreshDecorations.of(null) });
 		}
+	}
+
+	/**
+	 * Rerender a reading view while preserving its scroll position, block
+	 * collapse state, and per-block scroll positions.
+	 */
+	private refreshPreviewView(view: MarkdownView): void {
+		const blocks = Array.from(view.containerEl.querySelectorAll<HTMLElement>('.cbp-block'));
+		const states: PreviewBlockState[] = blocks.map((block) => ({
+			collapsed: block.classList.contains('is-collapsed'),
+			scrollTop: block.querySelector<HTMLElement>('.cbp-code-area')?.scrollTop ?? 0,
+		}));
+		const scroll = view.previewMode.getScroll();
+
+		view.previewMode.rerender(true);
+
+		window.requestAnimationFrame(() => {
+			window.requestAnimationFrame(() => {
+				view.previewMode.applyScroll(scroll);
+
+				const refreshed = view.containerEl.querySelectorAll<HTMLElement>('.cbp-block');
+
+				refreshed.forEach((block, index) => {
+					const state = states[index];
+					if (!state) {
+						return;
+					}
+
+					if (state.collapsed) {
+						setCollapsed(block, true);
+					}
+
+					const area = block.querySelector<HTMLElement>('.cbp-code-area');
+					if (area && state.scrollTop > 0) {
+						area.scrollTop = state.scrollTop;
+					}
+				});
+			});
+		});
 	}
 
 	async loadSettings(): Promise<void> {

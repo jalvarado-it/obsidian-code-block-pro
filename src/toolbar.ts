@@ -11,11 +11,16 @@ import type { CodeBlockProSettings } from './settings';
 const PREFIX = 'cbp';
 const COPIED_FEEDBACK_MS = 1500;
 
+interface CopyFeedbackState {
+	timer?: number;
+}
+
 export interface ToolbarOptions {
 	settings: CodeBlockProSettings;
 	language: string;
 	codeText: string;
 	title?: string;
+	lineCount?: number;
 	collapsible?: boolean;
 	refreshable?: boolean;
 	onRefresh?: () => void;
@@ -34,7 +39,7 @@ export function createToolbar(options: ToolbarOptions): HTMLElement | null {
 	const showLanguage = settings.showLanguageLabel;
 	const showDownload = settings.showDownloadButton;
 	const displayTitle = settings.showBlockTitle ? (options.title ?? '').trim() : '';
-	const lineCount = countLines(codeText);
+	const lineCount = options.lineCount ?? (collapsible ? countLines(codeText) : 0);
 	const showCollapse =
 		collapsible &&
 		lineCount > settings.collapseAfterLines &&
@@ -43,7 +48,7 @@ export function createToolbar(options: ToolbarOptions): HTMLElement | null {
 	const showRefresh =
 		options.refreshable === true &&
 		typeof refresh === 'function' &&
-		(settings.showCopyButton || showLanguage || showCollapse);
+		(settings.showCopyButton || showLanguage || showCollapse || showDownload || !!displayTitle);
 
 	if (
 		!settings.showCopyButton &&
@@ -80,13 +85,7 @@ export function createToolbar(options: ToolbarOptions): HTMLElement | null {
 	}
 
 	if (displayTitle) {
-		const titleEl = toolbar.createDiv({
-			cls: `${PREFIX}-title`,
-			text: displayTitle,
-			attr: { 'data-cbp-title': '' },
-		});
-
-		setTooltip(titleEl, displayTitle);
+		addToolbarTitle(toolbar, displayTitle);
 	}
 
 	if (settings.showCopyButton || showCollapse || showRefresh || showDownload) {
@@ -110,6 +109,27 @@ export function createToolbar(options: ToolbarOptions): HTMLElement | null {
 	}
 
 	return toolbar;
+}
+
+/**
+ * Add the optional block title after the language pill and before the actions.
+ * Used both when the toolbar is created and when a deferred title resolves.
+ */
+export function addToolbarTitle(toolbar: HTMLElement, title: string): void {
+	const displayTitle = title.trim();
+
+	if (!displayTitle || toolbar.querySelector(`.${PREFIX}-title`)) {
+		return;
+	}
+
+	const titleEl = toolbar.createDiv({ cls: `${PREFIX}-title`, text: displayTitle });
+	const actions = toolbar.querySelector(`.${PREFIX}-actions`);
+
+	setTooltip(titleEl, displayTitle);
+
+	if (actions) {
+		toolbar.insertBefore(titleEl, actions);
+	}
 }
 
 export function countLines(codeText: string): number {
@@ -151,6 +171,7 @@ function addRefreshButton(actions: HTMLElement, onRefresh: () => void): void {
 
 function addCopyButton(actions: HTMLElement, codeText: string, language: string): void {
 	const label = getCopyLabel(language);
+	const feedback: CopyFeedbackState = {};
 	const button = actions.createEl('button', {
 		cls: `${PREFIX}-icon-button ${PREFIX}-copy`,
 		attr: {
@@ -175,7 +196,7 @@ function addCopyButton(actions: HTMLElement, codeText: string, language: string)
 	setTooltip(button, label);
 
 	button.addEventListener('click', () => {
-		void copyCode(codeText, button, iconEl, status, language);
+		void copyCode(codeText, button, iconEl, status, language, feedback);
 	});
 }
 
@@ -209,31 +230,51 @@ function downloadCode(codeText: string, language: string, doc: Document): void {
 }
 
 function addCollapseButton(actions: HTMLElement): void {
-	const label = 'Collapse code block';
-	const button = createIconButton(actions, `${PREFIX}-collapse`, 'chevron-down', label);
+	const button = createIconButton(
+		actions,
+		`${PREFIX}-collapse`,
+		'chevron-down',
+		'Collapse code block',
+	);
 
 	button.setAttribute('aria-expanded', 'true');
 
 	button.addEventListener('click', () => {
-		const block = button.closest(`.${PREFIX}-block`);
+		const block = button.closest<HTMLElement>(`.${PREFIX}-block`);
 
 		if (!block) {
 			return;
 		}
 
-		const collapsed = block.classList.toggle('is-collapsed');
-		const nextLabel = collapsed ? 'Expand code block' : label;
-		const area = block.querySelector<HTMLElement>(`.${PREFIX}-code-area`);
-
-		if (area) {
-			area.scrollTop = 0;
-		}
-
-		setIcon(button, collapsed ? 'chevron-up' : 'chevron-down');
-		setTooltip(button, nextLabel);
-		button.setAttribute('aria-label', nextLabel);
-		button.setAttribute('aria-expanded', String(!collapsed));
+		setCollapsed(block, !block.classList.contains('is-collapsed'));
 	});
+}
+
+/**
+ * Apply a collapse state to an existing block and keep its control in sync.
+ * Shared by the collapse button and the state restoration after a rerender.
+ */
+export function setCollapsed(block: HTMLElement, collapsed: boolean): void {
+	block.classList.toggle('is-collapsed', collapsed);
+
+	const area = block.querySelector<HTMLElement>(`.${PREFIX}-code-area`);
+
+	if (area) {
+		area.scrollTop = 0;
+	}
+
+	const button = block.querySelector<HTMLButtonElement>(`.${PREFIX}-collapse`);
+
+	if (!button) {
+		return;
+	}
+
+	const label = collapsed ? 'Expand code block' : 'Collapse code block';
+
+	setIcon(button, collapsed ? 'chevron-up' : 'chevron-down');
+	setTooltip(button, label);
+	button.setAttribute('aria-label', label);
+	button.setAttribute('aria-expanded', String(!collapsed));
 }
 
 function createIconButton(
@@ -261,6 +302,7 @@ async function copyCode(
 	iconEl: HTMLElement,
 	status: HTMLElement,
 	language: string,
+	feedback: CopyFeedbackState,
 ): Promise<void> {
 	try {
 		await navigator.clipboard.writeText(codeText);
@@ -275,7 +317,11 @@ async function copyCode(
 	button.setAttribute('aria-label', 'Copied');
 	status.setText('Copied to clipboard');
 
-	window.setTimeout(() => {
+	if (feedback.timer !== undefined) {
+		window.clearTimeout(feedback.timer);
+	}
+
+	feedback.timer = window.setTimeout(() => {
 		const label = getCopyLabel(language);
 
 		button.removeClass('is-copied');
@@ -283,6 +329,7 @@ async function copyCode(
 		setTooltip(button, label);
 		button.setAttribute('aria-label', label);
 		status.setText('');
+		feedback.timer = undefined;
 	}, COPIED_FEEDBACK_MS);
 }
 
