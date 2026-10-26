@@ -6,7 +6,7 @@ fence declares one, the language name.
 ## Features
 
 - Compact header with a language badge, icon, and display name.
-- Copy button with text, icon confirmation, and screen reader feedback.
+- Copy icon with confirmation and screen reader feedback.
 - Download button that saves the code block as `code.<language extension>`.
 - Line numbers in reading view and Live Preview, without changing the code or
   the copied text.

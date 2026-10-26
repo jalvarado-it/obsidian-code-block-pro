@@ -2,22 +2,22 @@
   "spdxVersion": "SPDX-2.3",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "name": "code-block-pro@0.6.0",
-  "documentNamespace": "http://spdx.org/spdxdocs/code-block-pro-0.6.0-061236e4-258b-4193-8cf6-a7ce778b67a4",
+  "name": "code-block-pro@0.6.1",
+  "documentNamespace": "http://spdx.org/spdxdocs/code-block-pro-0.6.1-1df66b28-4ce0-4927-b3fd-957946b4bc5f",
   "creationInfo": {
-    "created": "2026-10-26T04:27:59.945Z",
+    "created": "2026-10-26T04:44:46.184Z",
     "creators": [
       "Tool: npm/cli-11.19.1"
     ]
   },
   "documentDescribes": [
-    "SPDXRef-Package-code-block-pro-0.6.0"
+    "SPDXRef-Package-code-block-pro-0.6.1"
   ],
   "packages": [
     {
       "name": "code-block-pro",
-      "SPDXID": "SPDXRef-Package-code-block-pro-0.6.0",
-      "versionInfo": "0.6.0",
+      "SPDXID": "SPDXRef-Package-code-block-pro-0.6.1",
+      "versionInfo": "0.6.1",
       "packageFileName": "",
       "description": "Enhance fenced code blocks with copy buttons and language labels.",
       "primaryPackagePurpose": "APPLICATION",
@@ -29,7 +29,7 @@
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/code-block-pro@0.6.0"
+          "referenceLocator": "pkg:npm/code-block-pro@0.6.1"
         }
       ]
     },
@@ -8110,67 +8110,67 @@
   "relationships": [
     {
       "spdxElementId": "SPDXRef-DOCUMENT",
-      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.0",
+      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.1",
       "relationshipType": "DESCRIBES"
     },
     {
       "spdxElementId": "SPDXRef-Package-codemirror.state-6.7.6",
-      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.0",
+      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.1",
       "relationshipType": "DEV_DEPENDENCY_OF"
     },
     {
       "spdxElementId": "SPDXRef-Package-codemirror.view-6.43.13",
-      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.0",
+      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.1",
       "relationshipType": "DEV_DEPENDENCY_OF"
     },
     {
       "spdxElementId": "SPDXRef-Package-eslint.js-10.0.1",
-      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.0",
+      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.1",
       "relationshipType": "DEV_DEPENDENCY_OF"
     },
     {
       "spdxElementId": "SPDXRef-Package-types.node-24.19.2",
-      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.0",
+      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.1",
       "relationshipType": "DEV_DEPENDENCY_OF"
     },
     {
       "spdxElementId": "SPDXRef-Package-esbuild-0.28.2",
-      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.0",
+      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.1",
       "relationshipType": "DEV_DEPENDENCY_OF"
     },
     {
       "spdxElementId": "SPDXRef-Package-eslint-10.13.0",
-      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.0",
+      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.1",
       "relationshipType": "DEV_DEPENDENCY_OF"
     },
     {
       "spdxElementId": "SPDXRef-Package-eslint-plugin-obsidianmd-0.4.2",
-      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.0",
+      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.1",
       "relationshipType": "DEV_DEPENDENCY_OF"
     },
     {
       "spdxElementId": "SPDXRef-Package-globals-17.13.0",
-      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.0",
+      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.1",
       "relationshipType": "DEV_DEPENDENCY_OF"
     },
     {
       "spdxElementId": "SPDXRef-Package-jiti-2.7.0",
-      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.0",
+      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.1",
       "relationshipType": "DEV_DEPENDENCY_OF"
     },
     {
       "spdxElementId": "SPDXRef-Package-obsidian-1.14.4",
-      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.0",
+      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.1",
       "relationshipType": "DEV_DEPENDENCY_OF"
     },
     {
       "spdxElementId": "SPDXRef-Package-typescript-5.9.3",
-      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.0",
+      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.1",
       "relationshipType": "DEV_DEPENDENCY_OF"
     },
     {
       "spdxElementId": "SPDXRef-Package-typescript-eslint-8.72.0",
-      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.0",
+      "relatedSpdxElement": "SPDXRef-Package-code-block-pro-0.6.1",
       "relationshipType": "DEV_DEPENDENCY_OF"
     },
     {

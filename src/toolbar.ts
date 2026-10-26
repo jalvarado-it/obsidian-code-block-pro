@@ -144,7 +144,6 @@ function addCopyButton(actions: HTMLElement, codeText: string, language: string)
 		cls: `${PREFIX}-button-icon`,
 		attr: { 'aria-hidden': 'true' },
 	});
-	const labelEl = button.createSpan({ cls: `${PREFIX}-button-label`, text: 'Copy' });
 	const status = actions.createSpan({
 		cls: `${PREFIX}-status`,
 		attr: {
@@ -158,7 +157,7 @@ function addCopyButton(actions: HTMLElement, codeText: string, language: string)
 	setTooltip(button, label);
 
 	button.addEventListener('click', () => {
-		void copyCode(codeText, button, iconEl, labelEl, status, language);
+		void copyCode(codeText, button, iconEl, status, language);
 	});
 }
 
@@ -242,7 +241,6 @@ async function copyCode(
 	codeText: string,
 	button: HTMLButtonElement,
 	iconEl: HTMLElement,
-	labelEl: HTMLElement,
 	status: HTMLElement,
 	language: string,
 ): Promise<void> {
@@ -255,7 +253,6 @@ async function copyCode(
 
 	button.addClass('is-copied');
 	setIcon(iconEl, 'check');
-	labelEl.setText('Copied');
 	setTooltip(button, 'Copied');
 	button.setAttribute('aria-label', 'Copied');
 	status.setText('Copied to clipboard');
@@ -265,7 +262,6 @@ async function copyCode(
 
 		button.removeClass('is-copied');
 		setIcon(iconEl, 'copy');
-		labelEl.setText('Copy');
 		setTooltip(button, label);
 		button.setAttribute('aria-label', label);
 		status.setText('');

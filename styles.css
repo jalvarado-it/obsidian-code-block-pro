@@ -201,24 +201,10 @@
 	height: var(--icon-s);
 }
 
-.cbp-icon-button.cbp-copy {
-	width: auto;
-	min-width: 88px;
-	padding: 0 var(--size-4-2);
-	gap: var(--size-4-1);
-	font-family: var(--font-interface);
-	font-size: var(--font-ui-smaller);
-}
-
 .cbp-copy .cbp-button-icon {
 	display: inline-flex;
 	align-items: center;
 	flex: none;
-}
-
-.cbp-copy .cbp-button-label {
-	line-height: 1;
-	white-space: nowrap;
 }
 
 .cbp-copy.is-copied,
@@ -486,12 +472,6 @@ input.cbp-settings-number {
 	.cbp-icon-button {
 		width: 44px;
 		height: 44px;
-	}
-
-	.cbp-icon-button.cbp-copy {
-		width: auto;
-		min-width: 88px;
-		padding: 0 var(--size-4-2);
 	}
 }
 
