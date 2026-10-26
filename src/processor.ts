@@ -14,7 +14,7 @@ import { addToolbarTitle, countLines, createToolbar } from './toolbar';
 const PREFIX = 'cbp';
 const PROCESSED_ATTRIBUTE = 'data-code-block-pro';
 const PENDING_ATTRIBUTE = 'data-code-block-pro-pending';
-const IGNORED_CONTAINERS = '.block-language-mermaid, .block-language-dataview, .block-language-dataviewjs, .block-language-query';
+const IGNORED_CONTAINERS = '.block-language-mermaid, .block-language-dataview, .block-language-dataviewjs, .block-language-query, .frontmatter, .metadata-container';
 
 interface CachedTitleIndex {
 	mtime: number;
