@@ -1,24 +1,71 @@
 # Code Block Pro
 
-Add a small toolbar to every rendered code block: a copy button and, when the
-fence declares one, the language name and block title.
+**Make every fenced code block easier to read, copy, and share.**
+
+Code Block Pro adds a compact, theme-aware header to code blocks in Obsidian.
+Keep the language and optional block title visible, copy or download the exact
+code in one click, and keep long blocks readable with line numbers, scrolling,
+and collapse.
+
+[Download the latest release](https://github.com/jalvarado-it/obsidian-code-block-pro/releases/latest) · [Installation](#installation) · [Settings](#settings)
+
+![Long TypeScript code block with line numbers, scrolling, and header actions](screenshots/scrolling.png)
+
+## Why Code Block Pro?
+
+- **Know what you're looking at.** Language badge, icon, and an optional title
+  taken directly from the code fence.
+- **Act without selecting code.** Copy or download the exact code, without line
+  numbers or fences.
+- **Keep long blocks under control.** Line numbers, vertical scrolling, and
+  one-click collapse.
+- **Stay in your workflow.** Works in Reading View and Live Preview.
+- **Lightweight by design.** No runtime dependencies, with theme-aware styling.
+- **Make it yours.** Every control can be disabled independently, with
+  configurable thresholds.
+
+## A closer look
+
+### Collapse long blocks
+
+![Collapsed code block with its header actions and line numbers still visible](screenshots/collapsed.png)
+
+The header stays available while the body collapses to a configurable number of
+lines. Expand it again with the same control.
+
+### Download the exact code
+
+![Save dialog showing code.py](screenshots/downloading.png)
+
+The fence language chooses the extension, such as `code.py`, `code.ts`, or
+`code.js`. The downloaded file contains only the code: no title, line numbers,
+or fences.
+
+### Tune every detail
+
+![Code Block Pro settings panel](screenshots/settings.png)
+
+Configure line numbers, collapse and scroll thresholds, and which actions appear
+in the header. Copy, download, language label, block title, and line numbers can
+be disabled independently.
 
 ## Features
 
-- Compact header with a language badge, icon, and display name.
+- Compact header with a language badge, icon, display name, and optional block
+  title.
 - Optional block title from the text after the language in the fence, for
   example ` ```javascript API client `.
 - Copy icon with confirmation and screen reader feedback.
 - Download button that saves the code block as `code.<language extension>`.
-- Line numbers in reading view and Live Preview, without changing the code or
+- Line numbers in Reading View and Live Preview, without changing the code or
   the copied text.
 - Automatic line-number realignment when Obsidian reapplies a theme or CSS,
-  plus a manual refresh control in reading view.
-- Collapsible long code blocks in reading view, with configurable threshold and
+  plus a manual refresh control in Reading View.
+- Collapsible long code blocks in Reading View, with configurable threshold and
   collapsed height.
-- Optional vertical scrolling after a configurable number of lines in reading
-  view.
-- Works in reading view and Live Preview.
+- Optional vertical scrolling after a configurable number of lines in Reading
+  View.
+- Works in Reading View and Live Preview.
 - Reading View supports fenced blocks inside callouts, blockquotes, and indented
   lists; Live Preview supports indented list fences.
 - Theme-aware container, header, and controls built on Obsidian CSS variables.
@@ -29,6 +76,15 @@ fence declares one, the language name and block title.
 Requires Obsidian 1.5.0 or later.
 
 ## Installation
+
+### From the latest release
+
+1. Download `main.js`, `manifest.json`, and `styles.css` from the
+   [latest release](https://github.com/jalvarado-it/obsidian-code-block-pro/releases/latest).
+2. Create `<vault>/.obsidian/plugins/code-block-pro/` if it does not exist.
+3. Copy the three files into that folder.
+4. Reload Obsidian and enable **Code Block Pro** in **Settings → Community
+   plugins**.
 
 ### From source
 
@@ -47,9 +103,10 @@ Requires Obsidian 1.5.0 or later.
    npm run build
    ```
 
-3. Reload Obsidian and enable **Code Block Pro** in **Settings → Community plugins**.
+3. Reload Obsidian and enable **Code Block Pro** in **Settings → Community
+   plugins**.
 
-### Manual
+### Manual file copy
 
 Copy `main.js`, `manifest.json`, and `styles.css` into
 `<vault>/.obsidian/plugins/code-block-pro/`, then enable the plugin.
@@ -116,6 +173,7 @@ saving** command, then enable the plugin under **Settings → Community plugins*
 │   └── settings.ts    # Settings shape and settings tab
 ├── scripts/
 │   └── install.mjs    # Local vault installer
+├── screenshots/       # README screenshots
 ├── styles.css         # Scoped, theme-aware styles
 ├── manifest.json      # Plugin metadata
 ├── esbuild.config.mjs # Bundler configuration
@@ -139,7 +197,7 @@ saving** command, then enable the plugin under **Settings → Community plugins*
 ## Releasing
 
 1. Bump the version with `npm version patch|minor|major`.
-2. Push the commit and tag.
+2. Push the commit and the signed tag.
 3. Create a GitHub release for the tag and attach `main.js`, `manifest.json`,
    and `styles.css`.
 

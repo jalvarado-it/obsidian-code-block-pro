@@ -36,6 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refresh is available when Download or Block title is the only other toolbar
   content.
 
+### Documentation
+
+- README now includes screenshots, a release-first installation path, and a
+  feature tour.
+
 ## [0.7.1] - 2026-10-25
 
 ### Fixed
