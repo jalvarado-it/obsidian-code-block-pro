@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Avoid `clip-path` in the visually hidden copy-status region, restoring
+  compatibility with Obsidian 1.4.5 CSS lint.
+
 ## [0.8.0] - 2026-10-25
 
 ### Added
