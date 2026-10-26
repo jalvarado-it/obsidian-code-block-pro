@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      # @types/node majors track the Node.js major; CI uses Node 24.
+      - dependency-name: "@types/node"
+        update-types:
+          - version-update:semver-major

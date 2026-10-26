@@ -33,3 +33,7 @@ skills-lock.json
 # Local design references and evidence
 reference/
 evidence/
+
+# Generated release metadata
+SHA256SUMS
+release-notes.md
