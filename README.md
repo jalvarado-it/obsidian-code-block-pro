@@ -5,13 +5,15 @@ fence declares one, the language name.
 
 ## Features
 
-- Copy button on each rendered code block, with screen reader feedback.
-- Language label taken from the code fence (```` ```ts ```` renders as `ts`).
+- Compact header with a language badge, icon, and display name.
+- Copy button with text, icon confirmation, and screen reader feedback.
 - Line numbers in reading view and Live Preview, without changing the code or
   the copied text.
+- Collapsible long code blocks in reading view.
 - Works in reading view and Live Preview.
-- Theme-aware styles built on Obsidian CSS variables.
-- All three elements can be disabled independently.
+- Theme-aware container, header, and controls built on Obsidian CSS variables.
+- Copy, language label, and line numbers can be disabled independently.
+- Mermaid, Dataview, and DataviewJS blocks are left to their own processors.
 
 Requires Obsidian 1.5.0 or later.
 
@@ -85,9 +87,10 @@ saving** command, then enable the plugin under **Settings → Community plugins*
 .
 ├── src/
 │   ├── main.ts        # Plugin lifecycle, post-processor registration
+│   ├── language.ts    # Language names, icons, and ignored processors
 │   ├── live-preview.ts # CodeMirror 6 extension for Live Preview
 │   ├── processor.ts   # Reading view code block decoration
-│   ├── toolbar.ts     # Shared toolbar and copy behavior
+│   ├── toolbar.ts     # Shared header, copy, and collapse behavior
 │   └── settings.ts    # Settings shape and settings tab
 ├── scripts/
 │   └── install.mjs    # Local vault installer

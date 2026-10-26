@@ -1,137 +1,266 @@
 /*
  * Code Block Pro
  *
- * All selectors are scoped to the `.cbp-` prefix so themes and other plugins
- * keep control of the rest of the interface. Colors and spacing come from
- * Obsidian CSS variables to support light, dark, and custom themes.
+ * A compact, theme-aware code block container for reading view and Live
+ * Preview. All selectors are scoped to the `.cbp-` prefix and use Obsidian
+ * variables so light, dark, and third-party themes keep working.
  */
 
-.cbp-block {
+.cbp-block,
+.cbp-live-wrapper {
+	--cbp-radius: 10px;
 	--cbp-line-number-gutter: 4ch;
 	--cbp-line-number-space: calc(var(--cbp-line-number-gutter) + var(--size-4-2));
+	container-type: inline-size;
+}
+
+.cbp-block {
+	position: relative;
 	margin: var(--size-4-3) 0;
-}
-
-.cbp-block > pre,
-.cbp-code-area > pre {
-	margin: 0;
-	border-top-left-radius: 0;
-	border-top-right-radius: 0;
-}
-
-.cbp-block.cbp-with-line-numbers:not(.cbp-has-toolbar) .cbp-code-area > pre {
-	border-top-right-radius: var(--code-radius);
-}
-
-.cbp-code-area {
-	display: flex;
-	align-items: stretch;
-}
-
-.cbp-code-area > pre {
-	flex: 1;
-	min-width: 0;
-	white-space: pre;
-	border-bottom-left-radius: 0;
-}
-
-.cbp-code-area > pre > code {
-	white-space: pre;
-	word-break: normal;
-	overflow-wrap: normal;
-}
-
-.cbp-line-numbers {
-	flex: none;
-	box-sizing: border-box;
-	width: var(--cbp-line-number-space);
-	padding: var(--size-4-3) var(--size-4-1) var(--size-4-3) 0;
 	background-color: var(--code-background);
-	border: var(--code-border-width) solid var(--code-border-color);
-	border-right: none;
-	border-radius: 0 0 0 var(--code-radius);
-	color: var(--text-faint);
-	font-family: var(--font-monospace);
-	font-size: var(--code-size);
-	line-height: var(--line-height-normal);
-	text-align: right;
-	white-space: pre;
-	user-select: none;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--cbp-radius);
+	box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 2px 8px rgb(0 0 0 / 0.02);
 	overflow: hidden;
 }
 
-.cbp-block:not(.cbp-has-toolbar) .cbp-line-numbers {
-	border-top-left-radius: var(--code-radius);
-}
+/* Header ------------------------------------------------------------------ */
 
 .cbp-toolbar {
-	position: relative;
 	display: flex;
 	align-items: center;
 	gap: var(--size-4-2);
-	padding: var(--size-4-1) var(--size-4-2);
-	background-color: var(--code-background);
-	border: 1px solid var(--background-modifier-border);
-	border-bottom: none;
-	border-radius: var(--radius-s) var(--radius-s) 0 0;
+	min-width: 0;
+	padding: var(--size-4-1) var(--size-4-3);
+	background-color: var(--background-primary);
+	border-bottom: 1px solid var(--background-modifier-border);
 }
 
 .cbp-language {
-	display: inline-flex;
-	align-items: center;
-	padding: var(--size-4-1) var(--size-4-2);
-	border-radius: var(--radius-s);
-	background-color: var(--background-modifier-hover);
-	color: var(--text-muted);
-	font-family: var(--font-monospace);
-	font-size: var(--font-ui-smaller);
-	line-height: 1;
-	text-transform: lowercase;
-}
-
-.cbp-actions {
 	display: flex;
 	align-items: center;
-	margin-left: auto;
+	gap: var(--size-4-2);
+	min-width: 0;
 }
 
-.cbp-toolbar--with-language .cbp-actions {
-	padding-left: var(--size-4-2);
-	border-left: 1px solid var(--background-modifier-border);
-}
-
-.cbp-copy {
+.cbp-language-badge {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 28px;
-	height: 28px;
+	flex: none;
+	box-sizing: border-box;
+	width: 32px;
+	height: 32px;
+	border-radius: 8px;
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+	font-family: var(--font-interface);
+	font-size: 11px;
+	font-weight: 700;
+	line-height: 1;
+	letter-spacing: -0.02em;
+	text-transform: uppercase;
+}
+
+.cbp-language-badge[data-language='javascript'] {
+	background-color: #f7df1e;
+	color: #1f1f1f;
+}
+
+.cbp-language-badge[data-language='typescript'] {
+	background-color: #3178c6;
+	color: #ffffff;
+}
+
+.cbp-language-badge[data-language='python'] {
+	background-color: #3776ab;
+	color: #ffffff;
+}
+
+.cbp-language-badge[data-language='shell'],
+.cbp-language-badge[data-language='powershell'] {
+	background-color: #4eaa25;
+	color: #ffffff;
+}
+
+.cbp-language-badge[data-language='html'],
+.cbp-language-badge[data-language='xml'],
+.cbp-language-badge[data-language='svg'] {
+	background-color: #e34f26;
+	color: #ffffff;
+}
+
+.cbp-language-badge[data-language='css'],
+.cbp-language-badge[data-language='scss'],
+.cbp-language-badge[data-language='sass'],
+.cbp-language-badge[data-language='less'] {
+	background-color: #1572b6;
+	color: #ffffff;
+}
+
+.cbp-language-badge[data-language='sql'] {
+	background-color: #336791;
+	color: #ffffff;
+}
+
+.cbp-language-badge[data-language='json'],
+.cbp-language-badge[data-language='jsonc'],
+.cbp-language-badge[data-language='json5'],
+.cbp-language-badge[data-language='yaml'],
+.cbp-language-badge[data-language='toml'],
+.cbp-language-badge[data-language='ini'] {
+	background-color: #6b7280;
+	color: #ffffff;
+}
+
+.cbp-language-badge[data-language='markdown'],
+.cbp-language-badge[data-language='text'],
+.cbp-language-badge[data-language='log'] {
+	background-color: #6b7280;
+	color: #ffffff;
+}
+
+.cbp-language-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--size-4-1);
+	box-sizing: border-box;
+	min-width: 0;
+	height: 32px;
+	padding: 0 var(--size-4-2);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	background-color: var(--background-primary);
+	color: var(--text-muted);
+	font-family: var(--font-interface);
+	font-size: var(--font-ui-smaller);
+}
+
+.cbp-language-icon {
+	display: inline-flex;
+	align-items: center;
+	flex: none;
+	color: var(--text-faint);
+}
+
+.cbp-language-icon svg {
+	width: var(--icon-xs);
+	height: var(--icon-xs);
+}
+
+.cbp-language-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cbp-actions {
+	position: relative;
+	display: flex;
+	align-items: center;
+	flex: none;
+	gap: var(--size-4-1);
+	margin-left: auto;
+}
+
+.cbp-icon-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	width: 32px;
+	height: 32px;
 	padding: 0;
 	border: none;
-	border-radius: var(--radius-s);
+	border-radius: 8px;
 	background-color: transparent;
 	color: var(--text-muted);
 	cursor: pointer;
+	transition: background-color 120ms ease, color 120ms ease;
 }
 
-.cbp-copy svg {
-	width: var(--icon-s);
-	height: var(--icon-s);
-}
-
-.cbp-copy:hover {
+.cbp-icon-button:hover {
 	background-color: var(--background-modifier-hover);
 	color: var(--text-normal);
 }
 
-.cbp-copy:focus-visible {
+.cbp-icon-button:active {
+	background-color: var(--background-modifier-active-hover);
+}
+
+.cbp-icon-button:focus-visible {
 	outline: 2px solid var(--interactive-accent);
 	outline-offset: 2px;
+}
+
+.cbp-icon-button svg {
+	width: var(--icon-s);
+	height: var(--icon-s);
+}
+
+.cbp-icon-button.cbp-copy {
+	width: auto;
+	min-width: 88px;
+	padding: 0 var(--size-4-2);
+	gap: var(--size-4-1);
+	font-family: var(--font-interface);
+	font-size: var(--font-ui-smaller);
+}
+
+.cbp-copy .cbp-button-icon {
+	display: inline-flex;
+	align-items: center;
+	flex: none;
+}
+
+.cbp-copy .cbp-button-label {
+	line-height: 1;
+	white-space: nowrap;
 }
 
 .cbp-copy.is-copied,
 .cbp-copy.is-copied:hover {
 	color: var(--text-success);
+}
+
+/* Obsidian's markdown button styles add a filled background; keep the header
+   actions minimal and let only hover/active provide the surface. */
+.cbp-block .cbp-toolbar .cbp-icon-button,
+.cbp-live-wrapper .cbp-toolbar .cbp-icon-button {
+	background-color: transparent;
+	box-shadow: none;
+	color: var(--text-normal);
+}
+
+.cbp-block .cbp-toolbar .cbp-icon-button:hover,
+.cbp-live-wrapper .cbp-toolbar .cbp-icon-button:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.cbp-block .cbp-toolbar .cbp-icon-button:active,
+.cbp-live-wrapper .cbp-toolbar .cbp-icon-button:active {
+	background-color: var(--background-modifier-active-hover);
+}
+
+.cbp-block .cbp-toolbar .cbp-icon-button:focus-visible,
+.cbp-live-wrapper .cbp-toolbar .cbp-icon-button:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
+}
+
+.cbp-block .cbp-toolbar .cbp-copy.is-copied,
+.cbp-live-wrapper .cbp-toolbar .cbp-copy.is-copied,
+.cbp-block .cbp-toolbar .cbp-copy.is-copied:hover,
+.cbp-live-wrapper .cbp-toolbar .cbp-copy.is-copied:hover {
+	color: var(--text-success);
+}
+
+@supports (background-color: color-mix(in srgb, red 10%, transparent)) {
+	.cbp-block .cbp-toolbar .cbp-copy:hover,
+	.cbp-live-wrapper .cbp-toolbar .cbp-copy:hover {
+		background-color: color-mix(in srgb, var(--interactive-accent) 14%, transparent);
+	}
 }
 
 .cbp-status {
@@ -146,14 +275,84 @@
 	border: 0;
 }
 
-/*
- * Live Preview block widgets are direct children of .cm-content, where
- * Obsidian forces display:block and margin:0 !important. Keep the widget
- * hidden except in Live Preview; the wrapper also provides vertical spacing.
- */
+/* Code area --------------------------------------------------------------- */
+
+.cbp-code-area {
+	position: relative;
+	display: flex;
+	align-items: stretch;
+	background-color: var(--code-background);
+}
+
+.cbp-code-area > pre {
+	flex: 1;
+	min-width: 0;
+	margin: 0;
+	padding: var(--size-4-3) var(--size-4-4);
+	border: none;
+	border-radius: 0;
+	background-color: transparent;
+	box-shadow: none;
+	overflow-x: auto;
+}
+
+.cbp-code-area > pre > code {
+	background-color: transparent;
+}
+
+/* Obsidian's native copy affordance is replaced by the toolbar copy button. */
+.cbp-block.cbp-has-copy button.copy-code-button,
+.cbp-block.cbp-has-copy .code-block-flair {
+	display: none;
+}
+
+/* Line numbers ------------------------------------------------------------ */
+
+.cbp-with-line-numbers .cbp-code-area > pre,
+.cbp-with-line-numbers .cbp-code-area > pre > code {
+	white-space: pre;
+	word-break: normal;
+	overflow-wrap: normal;
+}
+
+.cbp-line-numbers {
+	flex: none;
+	box-sizing: border-box;
+	width: var(--cbp-line-number-space);
+	padding: var(--size-4-3) var(--size-4-1) var(--size-4-3) 0;
+	border-right: 1px solid var(--background-modifier-border);
+	color: var(--text-faint);
+	font-family: var(--font-monospace);
+	font-size: var(--code-size);
+	line-height: var(--line-height-normal);
+	text-align: right;
+	white-space: pre;
+	user-select: none;
+	overflow: hidden;
+}
+
+/* Collapse ---------------------------------------------------------------- */
+
+.cbp-block.is-collapsed .cbp-code-area {
+	max-height: min(22rem, 60vh);
+	overflow: hidden;
+}
+
+.cbp-block.is-collapsed .cbp-code-area::after {
+	content: '';
+	position: absolute;
+	inset-inline: 0;
+	bottom: 0;
+	height: 3rem;
+	background: linear-gradient(to bottom, transparent, var(--code-background));
+	pointer-events: none;
+}
+
+/* Live Preview ------------------------------------------------------------ */
+
 .cm-content > .cbp-live-wrapper {
 	display: none;
-	padding: var(--size-4-2) 0 var(--size-4-1);
+	padding: var(--size-4-2) 0 0;
 }
 
 .markdown-source-view.mod-cm6 .cm-content > .cbp-live-wrapper {
@@ -164,18 +363,59 @@
 	display: block;
 }
 
-/* The Live Preview toolbar replaces Obsidian's native code block flair. */
-.markdown-source-view.mod-cm6 .cbp-live-preview .code-block-flair {
+.cbp-live-wrapper .cbp-toolbar {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--cbp-radius) var(--cbp-radius) 0 0;
+}
+
+/* Only blocks processed by this plugin receive the container outline. */
+.markdown-source-view.mod-cm6 .cm-line[data-cbp-block] {
+	--cbp-radius: 10px;
+}
+
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-codeblock-bg[data-cbp-block] {
+	border-left: 1px solid var(--background-modifier-border);
+	border-right: 1px solid var(--background-modifier-border);
+	border-color: var(--background-modifier-border);
+}
+
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-codeblock-begin-bg[data-cbp-block] {
+	border-top: 1px solid var(--background-modifier-border);
+	border-top-left-radius: var(--cbp-radius);
+	border-top-right-radius: var(--cbp-radius);
+}
+
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-codeblock-begin-bg[data-cbp-toolbar] {
+	border-top: none;
+	border-top-left-radius: 0;
+	border-top-right-radius: 0;
+}
+
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-codeblock-end-bg[data-cbp-block] {
+	border-bottom: 1px solid var(--background-modifier-border);
+	border-bottom-left-radius: var(--cbp-radius);
+	border-bottom-right-radius: var(--cbp-radius);
+}
+
+/* A replaced fence line should not leave a blank strip under the header. */
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-codeblock-begin[data-cbp-toolbar]:not(.cm-active) {
+	min-height: 0;
+	padding-block: 0;
+	font-size: 0;
+	line-height: 0;
+}
+
+/* The toolbar replaces the native flair only when it also provides copying. */
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-codeblock-begin[data-cbp-copy] .code-block-flair {
 	display: none;
 }
 
-/* Line numbers in Live Preview are generated from data attributes. */
 .cbp-live-numbers {
 	--cbp-line-number-gutter: 4ch;
 	--cbp-line-number-space: calc(var(--cbp-line-number-gutter) + var(--size-4-2));
 }
 
-.markdown-source-view.mod-cm6 .cbp-live-numbers .cm-line.HyperMD-codeblock {
+.markdown-source-view.mod-cm6 .cbp-live-numbers .cm-line.HyperMD-codeblock[data-cbp-block] {
 	padding-inline-start: calc(var(--size-4-4) + var(--cbp-line-number-space));
 }
 
@@ -201,9 +441,40 @@
 	pointer-events: none;
 }
 
+/* Responsive -------------------------------------------------------------- */
+
 @media (pointer: coarse) {
-	.cbp-copy {
+	.cbp-toolbar {
+		padding: var(--size-4-2) var(--size-4-3);
+	}
+
+	.cbp-icon-button {
 		width: 44px;
 		height: 44px;
+	}
+
+	.cbp-icon-button.cbp-copy {
+		width: auto;
+		min-width: 96px;
+		padding: 0 var(--size-4-3);
+	}
+}
+
+@container (max-width: 360px) {
+	.cbp-icon-button.cbp-copy {
+		width: 32px;
+		min-width: 32px;
+		padding: 0;
+		gap: 0;
+	}
+
+	.cbp-copy .cbp-button-label {
+		display: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cbp-icon-button {
+		transition: none;
 	}
 }

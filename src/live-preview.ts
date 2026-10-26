@@ -1,8 +1,9 @@
 import { RangeSetBuilder, StateEffect, StateField } from '@codemirror/state';
-import type { EditorState, Extension } from '@codemirror/state';
+import type { EditorState, Extension, Line } from '@codemirror/state';
 import { Decoration, EditorView, ViewPlugin, WidgetType } from '@codemirror/view';
 import type { DecorationSet, ViewUpdate } from '@codemirror/view';
 import { editorLivePreviewField } from 'obsidian';
+import { isIgnoredLanguage } from './language';
 import type { CodeBlockProSettings } from './settings';
 import { createToolbar } from './toolbar';
 
@@ -107,6 +108,7 @@ function buildDecorations(state: EditorState, settings: CodeBlockProSettings): D
 		}
 
 		const language = opening[2] ?? '';
+		const ignored = isIgnoredLanguage(language);
 		const codeLines: string[] = [];
 		let endLineNumber = lineNumber + 1;
 
@@ -120,7 +122,7 @@ function buildDecorations(state: EditorState, settings: CodeBlockProSettings): D
 			codeLines.push(codeLine.text);
 		}
 
-		if (settings.showCopyButton || (settings.showLanguageLabel && language)) {
+		if (!ignored && (settings.showCopyButton || settings.showLanguageLabel)) {
 			builder.add(
 				line.from,
 				line.from,
@@ -139,7 +141,9 @@ function buildDecorations(state: EditorState, settings: CodeBlockProSettings): D
 }
 
 function buildLineDecorations(view: EditorView, settings: CodeBlockProSettings): DecorationSet {
-	if (!settings.showLineNumbers) {
+	const hasToolbar = settings.showCopyButton || settings.showLanguageLabel;
+
+	if (!hasToolbar && !settings.showLineNumbers) {
 		return Decoration.none;
 	}
 
@@ -171,27 +175,52 @@ function buildLineDecorations(view: EditorView, settings: CodeBlockProSettings):
 			continue;
 		}
 
+		const ignored = isIgnoredLanguage(opening[2] ?? '');
 		let displayLine = 1;
 		let endLineNumber = scanLine + 1;
+		let endLine: Line | null = null;
+
+		if (!ignored && isLineVisible(line.from, line.to, visibleRanges)) {
+			const attributes: Record<string, string> = { 'data-cbp-block': 'true' };
+
+			if (hasToolbar) {
+				attributes['data-cbp-toolbar'] = 'true';
+			}
+
+			if (settings.showCopyButton) {
+				attributes['data-cbp-copy'] = 'true';
+			}
+
+			builder.add(line.from, line.from, Decoration.line({ attributes }));
+		}
 
 		for (; endLineNumber <= doc.lines; endLineNumber++) {
 			const codeLine = doc.line(endLineNumber);
 
 			if (isClosingFence(codeLine.text, fence)) {
+				endLine = codeLine;
 				break;
 			}
 
-			if (isLineVisible(codeLine.from, codeLine.to, visibleRanges)) {
-				builder.add(
-					codeLine.from,
-					codeLine.from,
-					Decoration.line({
-						attributes: { 'data-cbp-line': String(displayLine) },
-					}),
-				);
+			if (!ignored && isLineVisible(codeLine.from, codeLine.to, visibleRanges)) {
+				const attributes: Record<string, string> = { 'data-cbp-block': 'true' };
+
+				if (settings.showLineNumbers) {
+					attributes['data-cbp-line'] = String(displayLine);
+				}
+
+				builder.add(codeLine.from, codeLine.from, Decoration.line({ attributes }));
 			}
 
 			displayLine++;
+		}
+
+		if (!ignored && endLine && isLineVisible(endLine.from, endLine.to, visibleRanges)) {
+			builder.add(
+				endLine.from,
+				endLine.from,
+				Decoration.line({ attributes: { 'data-cbp-block': 'true' } }),
+			);
 		}
 
 		scanLine = endLineNumber + 1;
@@ -255,7 +284,11 @@ class CodeBlockToolbarWidget extends WidgetType {
 
 	toDOM(): HTMLElement {
 		const wrapper = createDiv({ cls: `${PREFIX}-live-wrapper` });
-		const toolbar = createToolbar(this.settings, this.block.language, this.block.code);
+		const toolbar = createToolbar({
+			settings: this.settings,
+			language: this.block.language,
+			codeText: this.block.code,
+		});
 
 		if (!toolbar) {
 			return wrapper;

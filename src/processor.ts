@@ -1,8 +1,10 @@
+import { isIgnoredLanguage } from './language';
 import type { CodeBlockProSettings } from './settings';
-import { createToolbar } from './toolbar';
+import { countLines, createToolbar } from './toolbar';
 
 const PREFIX = 'cbp';
 const PROCESSED_ATTRIBUTE = 'data-code-block-pro';
+const IGNORED_CONTAINERS = '.block-language-mermaid, .block-language-dataview, .block-language-dataviewjs, .block-language-query';
 
 /**
  * Add a toolbar and optional line numbers to fenced code blocks in reading view.
@@ -19,13 +21,17 @@ export function decorateCodeBlocks(container: HTMLElement, settings: CodeBlockPr
 		const pre = code.parentElement;
 		const parent = pre?.parentElement;
 
-		if (!pre || !parent || pre.hasAttribute(PROCESSED_ATTRIBUTE)) {
+		if (!pre || !parent || pre.hasAttribute(PROCESSED_ATTRIBUTE) || pre.closest(IGNORED_CONTAINERS)) {
+			continue;
+		}
+
+		const language = getLanguage(code);
+		if (isIgnoredLanguage(language)) {
 			continue;
 		}
 
 		const codeText = code.textContent ?? '';
-		const language = getLanguage(code);
-		const toolbar = createToolbar(settings, language, codeText);
+		const toolbar = createToolbar({ settings, language, codeText, collapsible: true });
 
 		if (!toolbar && !settings.showLineNumbers) {
 			continue;
@@ -41,26 +47,28 @@ export function decorateCodeBlocks(container: HTMLElement, settings: CodeBlockPr
 			wrapper.appendChild(toolbar);
 		}
 
+		if (settings.showCopyButton) {
+			wrapper.addClass(`${PREFIX}-has-copy`);
+		}
+
+		const codeArea = wrapper.createDiv({ cls: `${PREFIX}-code-area` });
+
 		if (settings.showLineNumbers) {
 			wrapper.addClass(`${PREFIX}-with-line-numbers`);
 
-			const codeArea = wrapper.createDiv({ cls: `${PREFIX}-code-area` });
 			const gutter = codeArea.createDiv({
 				cls: `${PREFIX}-line-numbers`,
 				attr: { 'aria-hidden': 'true' },
 			});
 
-			gutter.setText(buildLineNumbers(codeText));
-			codeArea.appendChild(pre);
-		} else {
-			wrapper.appendChild(pre);
+			gutter.setText(buildLineNumbers(countLines(codeText)));
 		}
+
+		codeArea.appendChild(pre);
 	}
 }
 
-function buildLineNumbers(codeText: string): string {
-	const trimmed = codeText.endsWith('\n') ? codeText.slice(0, -1) : codeText;
-	const lineCount = Math.max(1, trimmed.split('\n').length);
+function buildLineNumbers(lineCount: number): string {
 	return Array.from({ length: lineCount }, (_, index) => String(index + 1)).join('\n');
 }
 

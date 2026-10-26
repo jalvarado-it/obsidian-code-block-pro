@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-25
+
+### Added
+
+- Language badges, icons, and normalized display names in the header.
+- Collapse and expand control for long code blocks in reading view.
+- Compatibility guard for Mermaid, Dataview, and DataviewJS blocks.
+
+### Changed
+
+- Redesigned the code block container with a compact header, rounded corners,
+  subtle borders, and theme-aware backgrounds.
+- Unified the copy and line-number controls under the new header.
+- The native copy affordance is hidden only when the plugin replaces it.
+
 ## [0.2.0] - 2026-10-25
 
 ### Added
