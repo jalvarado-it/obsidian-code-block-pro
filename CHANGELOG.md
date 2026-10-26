@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-10-26
+
+### Fixed
+
+- Avoid decorating the YAML frontmatter as a code block in Reading View, which
+  left an empty block below the properties.
+
 ## [0.8.2] - 2026-10-26
 
 ### Changed
