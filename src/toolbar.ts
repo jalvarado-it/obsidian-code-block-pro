@@ -1,6 +1,7 @@
 import { Notice, setIcon, setTooltip } from 'obsidian';
 import {
 	getLanguageBadge,
+	getLanguageExtension,
 	getLanguageIconId,
 	getLanguageLabel,
 	normalizeLanguage,
@@ -30,6 +31,7 @@ export function createToolbar(options: ToolbarOptions): HTMLElement | null {
 	const displayLanguage = getLanguageLabel(options.language);
 	const normalizedLanguage = normalizeLanguage(options.language) || 'text';
 	const showLanguage = settings.showLanguageLabel;
+	const showDownload = settings.showDownloadButton;
 	const lineCount = countLines(codeText);
 	const showCollapse =
 		collapsible &&
@@ -41,7 +43,7 @@ export function createToolbar(options: ToolbarOptions): HTMLElement | null {
 		typeof refresh === 'function' &&
 		(settings.showCopyButton || showLanguage || showCollapse);
 
-	if (!settings.showCopyButton && !showLanguage && !showCollapse) {
+	if (!settings.showCopyButton && !showLanguage && !showCollapse && !showDownload) {
 		return null;
 	}
 
@@ -69,7 +71,7 @@ export function createToolbar(options: ToolbarOptions): HTMLElement | null {
 		pill.createSpan({ cls: `${PREFIX}-language-label`, text: displayLanguage });
 	}
 
-	if (settings.showCopyButton || showCollapse || showRefresh) {
+	if (settings.showCopyButton || showCollapse || showRefresh || showDownload) {
 		const actions = toolbar.createDiv({ cls: `${PREFIX}-actions` });
 
 		if (showRefresh && refresh) {
@@ -78,6 +80,10 @@ export function createToolbar(options: ToolbarOptions): HTMLElement | null {
 
 		if (settings.showCopyButton) {
 			addCopyButton(actions, codeText, displayLanguage);
+		}
+
+		if (showDownload) {
+			addDownloadButton(actions, codeText, options.language);
 		}
 
 		if (showCollapse) {
@@ -154,6 +160,35 @@ function addCopyButton(actions: HTMLElement, codeText: string, language: string)
 	button.addEventListener('click', () => {
 		void copyCode(codeText, button, iconEl, labelEl, status, language);
 	});
+}
+
+function addDownloadButton(actions: HTMLElement, codeText: string, language: string): void {
+	const button = createIconButton(actions, `${PREFIX}-download`, 'download', 'Download code');
+
+	button.addEventListener('click', () => {
+		downloadCode(codeText, language, button.ownerDocument);
+	});
+}
+
+function downloadCode(codeText: string, language: string, doc: Document): void {
+	const filename = `code.${getLanguageExtension(language)}`;
+	const blob = new Blob([codeText], { type: 'text/plain;charset=utf-8' });
+	const urlApi = doc.defaultView?.URL ?? URL;
+	const url = urlApi.createObjectURL(blob);
+	const anchor = doc.body.createEl('a', {
+		attr: {
+			href: url,
+			download: filename,
+			hidden: '',
+		},
+	});
+
+	anchor.click();
+	anchor.remove();
+
+	window.setTimeout(() => {
+		urlApi.revokeObjectURL(url);
+	}, 0);
 }
 
 function addCollapseButton(actions: HTMLElement): void {

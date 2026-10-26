@@ -136,6 +136,56 @@ const LANGUAGE_BADGES: Record<string, string> = {
 	wasm: 'WASM',
 };
 
+const LANGUAGE_EXTENSIONS: Record<string, string> = {
+	javascript: 'js',
+	typescript: 'ts',
+	python: 'py',
+	shell: 'sh',
+	powershell: 'ps1',
+	html: 'html',
+	xml: 'xml',
+	svg: 'svg',
+	css: 'css',
+	scss: 'scss',
+	sass: 'sass',
+	less: 'less',
+	json: 'json',
+	jsonc: 'jsonc',
+	json5: 'json5',
+	yaml: 'yml',
+	toml: 'toml',
+	ini: 'ini',
+	markdown: 'md',
+	text: 'txt',
+	log: 'log',
+	sql: 'sql',
+	java: 'java',
+	c: 'c',
+	cpp: 'cpp',
+	csharp: 'cs',
+	go: 'go',
+	rust: 'rs',
+	ruby: 'rb',
+	php: 'php',
+	swift: 'swift',
+	kotlin: 'kt',
+	scala: 'scala',
+	lua: 'lua',
+	r: 'r',
+	dart: 'dart',
+	elixir: 'ex',
+	erlang: 'erl',
+	haskell: 'hs',
+	clojure: 'clj',
+	perl: 'pl',
+	graphql: 'graphql',
+	solidity: 'sol',
+	zig: 'zig',
+	nim: 'nim',
+	asm: 'asm',
+	wasm: 'wasm',
+};
+
 export function normalizeLanguage(language: string): string {
 	const key = language.trim().toLowerCase();
 	return LANGUAGE_ALIASES[key] ?? key;
@@ -147,6 +197,10 @@ export function isIgnoredLanguage(language: string): boolean {
 
 export function getLanguageLabel(language: string): string {
 	return normalizeLanguage(language) || 'text';
+}
+
+export function getLanguageExtension(language: string): string {
+	return LANGUAGE_EXTENSIONS[normalizeLanguage(language)] ?? 'txt';
 }
 
 export function getLanguageBadge(language: string): string {

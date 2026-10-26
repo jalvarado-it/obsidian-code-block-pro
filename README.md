@@ -7,6 +7,7 @@ fence declares one, the language name.
 
 - Compact header with a language badge, icon, and display name.
 - Copy button with text, icon confirmation, and screen reader feedback.
+- Download button that saves the code block as `code.<language extension>`.
 - Line numbers in reading view and Live Preview, without changing the code or
   the copied text.
 - Automatic line-number realignment when Obsidian reapplies a theme or CSS,
@@ -115,6 +116,7 @@ saving** command, then enable the plugin under **Settings → Community plugins*
 | Collapsed lines | 14 | Number of code lines visible while a block is collapsed. |
 | Scroll after lines | 24 | Add a vertical scrollbar after this many lines. Defaults to the same value as Collapse after lines. 0 disables it. The effective height is at least Collapsed lines. |
 | Copy button | On | Add a button to copy the code block to the clipboard. |
+| Download button | On | Add a button to download the code block as a file (`code.<ext>`). |
 | Language label | On | Show the language declared in the code fence. |
 
 ## Releasing

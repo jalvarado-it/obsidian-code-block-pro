@@ -15,6 +15,7 @@ export interface CodeBlockProSettings {
 	collapsedLines: number;
 	scrollAfterLines: number;
 	showCopyButton: boolean;
+	showDownloadButton: boolean;
 	showLanguageLabel: boolean;
 }
 
@@ -24,6 +25,7 @@ export const DEFAULT_SETTINGS: CodeBlockProSettings = {
 	collapsedLines: DEFAULT_COLLAPSED_LINES,
 	scrollAfterLines: DEFAULT_SCROLL_AFTER_LINES,
 	showCopyButton: true,
+	showDownloadButton: true,
 	showLanguageLabel: true,
 };
 
@@ -58,6 +60,10 @@ export function normalizeSettings(value: unknown): CodeBlockProSettings {
 			MAX_LINE_SETTING,
 		),
 		showCopyButton: readBoolean(record.showCopyButton, DEFAULT_SETTINGS.showCopyButton),
+		showDownloadButton: readBoolean(
+			record.showDownloadButton,
+			DEFAULT_SETTINGS.showDownloadButton,
+		),
 		showLanguageLabel: readBoolean(record.showLanguageLabel, DEFAULT_SETTINGS.showLanguageLabel),
 	};
 }
@@ -164,6 +170,15 @@ export class SettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName('Download button')
+			.setDesc('Add a button to download the code block as a file.')
+			.addToggle((toggle) =>
+				toggle.setValue(this.plugin.settings.showDownloadButton).onChange(async (value) => {
+					await this.updateSetting('showDownloadButton', value);
+				}),
+			);
+
+		new Setting(containerEl)
 			.setName('Language label')
 			.setDesc('Show the language declared in the code fence.')
 			.addToggle((toggle) =>
@@ -241,6 +256,15 @@ export class SettingTab extends PluginSettingTab {
 						},
 					},
 					{
+						name: 'Download button',
+						desc: 'Add a button to download the code block as a file.',
+						control: {
+							type: 'toggle',
+							key: 'showDownloadButton',
+							defaultValue: DEFAULT_SETTINGS.showDownloadButton,
+						},
+					},
+					{
 						name: 'Language label',
 						desc: 'Show the language declared in the code fence.',
 						control: {
@@ -275,7 +299,12 @@ export class SettingTab extends PluginSettingTab {
 			return;
 		}
 
-		if (key !== 'showLineNumbers' && key !== 'showCopyButton' && key !== 'showLanguageLabel') {
+		if (
+			key !== 'showLineNumbers' &&
+			key !== 'showCopyButton' &&
+			key !== 'showDownloadButton' &&
+			key !== 'showLanguageLabel'
+		) {
 			return;
 		}
 
