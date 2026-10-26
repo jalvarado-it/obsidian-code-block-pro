@@ -211,7 +211,6 @@ function normalizeCode(text: string): string {
 	return text
 		.replace(/\r\n?/g, '\n')
 		.replace(/\u00a0/g, ' ')
-		.replace(/\t/g, '    ')
 		.replace(/[ \t]+$/gm, '')
 		.replace(/^\n+/, '')
 		.replace(/\n+$/, '');

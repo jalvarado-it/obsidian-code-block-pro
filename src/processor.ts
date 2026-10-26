@@ -154,7 +154,6 @@ export async function decorateCodeBlocks(
 		parent.insertBefore(block, pre);
 
 		if (toolbar) {
-			block.addClass(`${PREFIX}-has-toolbar`);
 			block.appendChild(toolbar);
 		}
 
@@ -174,6 +173,7 @@ export async function decorateCodeBlocks(
 			});
 
 			gutter.setText(buildLineNumbers(lineCount));
+			gutter.dataset.cbpLineCount = String(lineCount);
 		}
 
 		codeArea.appendChild(pre);
@@ -206,7 +206,6 @@ export async function decorateCodeBlocks(
 				}
 
 				block.insertBefore(lateToolbar, codeArea);
-				block.addClass(`${PREFIX}-has-toolbar`);
 			});
 		}
 	}
@@ -232,21 +231,22 @@ function syncCodeBlockMetrics(
 		const top = parseLength(preStyle.borderTopWidth) + parseLength(preStyle.paddingTop);
 		const bottom = parseLength(preStyle.borderBottomWidth) + parseLength(preStyle.paddingBottom);
 		const lineHeight = Math.max(parseLength(preStyle.lineHeight), parseLength(codeStyle.lineHeight));
+		const fontSize = parseLength(codeStyle.fontSize);
+		const lineHeightValue =
+			lineHeight > 0
+				? `${lineHeight}px`
+				: fontSize > 0
+					? `${fontSize * 1.5}px`
+					: '1.5em';
 		const area = pre.parentElement;
 
 		if (area) {
-			area.style.setProperty(
-				'--cbp-code-line-height',
-				lineHeight > 0 ? `${lineHeight}px` : codeStyle.lineHeight,
-			);
+			area.style.setProperty('--cbp-code-line-height', lineHeightValue);
 			area.style.setProperty('--cbp-code-padding', `${top + bottom}px`);
 		}
 
 		if (gutter?.isConnected) {
-			gutter.style.setProperty(
-				'--cbp-gutter-line-height',
-				lineHeight > 0 ? `${lineHeight}px` : codeStyle.lineHeight,
-			);
+			gutter.style.setProperty('--cbp-gutter-line-height', lineHeightValue);
 			gutter.style.setProperty('--cbp-gutter-font-size', codeStyle.fontSize);
 			gutter.style.setProperty('--cbp-gutter-font-family', codeStyle.fontFamily);
 			gutter.style.setProperty('--cbp-gutter-padding-top', `${top}px`);
@@ -286,7 +286,12 @@ export function refreshCodeBlockMetrics(block: HTMLElement): void {
 	}
 
 	if (gutter) {
-		gutter.setText(buildLineNumbers(countLines(code.textContent ?? '')));
+		const lineCount = countLines(code.textContent ?? '');
+
+		if (gutter.dataset.cbpLineCount !== String(lineCount)) {
+			gutter.setText(buildLineNumbers(lineCount));
+			gutter.dataset.cbpLineCount = String(lineCount);
+		}
 	}
 
 	syncCodeBlockMetrics(pre, code, gutter);
