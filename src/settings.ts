@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import { App, PluginSettingTab } from 'obsidian';
 import type { SettingDefinition, SettingDefinitionItem } from 'obsidian';
 import type CodeBlockProPlugin from './main';
 
@@ -234,35 +234,8 @@ export class SettingTab extends PluginSettingTab {
 	}
 
 	/**
-	 * Settings tab for Obsidian versions before 1.13.0, where the declarative
-	 * settings API is not available.
-	 */
-	display(): void {
-		const { containerEl } = this;
-
-		containerEl.empty();
-
-		new Setting(containerEl).setName('Appearance').setHeading();
-
-		for (const entry of SETTING_METADATA) {
-			if (entry.type === 'toggle') {
-				new Setting(containerEl)
-					.setName(entry.name)
-					.setDesc(entry.desc)
-					.addToggle((toggle) =>
-						toggle.setValue(this.plugin.settings[entry.key]).onChange(async (value) => {
-							await this.updateSetting(entry.key, value);
-						}),
-					);
-			} else {
-				this.addNumberSetting(containerEl, entry);
-			}
-		}
-	}
-
-	/**
-	 * Settings tab for Obsidian 1.13.0 and later, which renders definitions and
-	 * makes settings available to global search.
+	 * Obsidian 1.13.0+ renders the settings declaratively and makes them
+	 * available to global search.
 	 */
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		return [
@@ -272,6 +245,10 @@ export class SettingTab extends PluginSettingTab {
 				items: SETTING_METADATA.map(toSettingDefinition),
 			},
 		];
+	}
+
+	getControlValue(key: string): unknown {
+		return this.plugin.settings[key as keyof CodeBlockProSettings];
 	}
 
 	async setControlValue(key: string, value: unknown): Promise<void> {
@@ -298,52 +275,6 @@ export class SettingTab extends PluginSettingTab {
 			this.plugin.settings[entry.key] = clamp(Math.round(numeric), entry.min, entry.max);
 		}
 
-		await this.plugin.saveSettings();
-		this.plugin.refreshViews();
-	}
-
-	private addNumberSetting(containerEl: HTMLElement, entry: NumberSettingMetadata): void {
-		new Setting(containerEl)
-			.setName(entry.name)
-			.setDesc(entry.desc)
-			.addText((text) => {
-				text.inputEl.type = 'number';
-				text.inputEl.min = String(entry.min);
-				text.inputEl.max = String(entry.max);
-				text.inputEl.step = '1';
-				text.inputEl.addClass('cbp-settings-number');
-				text.inputEl.setAttribute('aria-label', entry.name);
-				text.setValue(String(this.plugin.settings[entry.key]));
-
-				text.onChange(async (value) => {
-					const parsed = Number.parseInt(value, 10);
-
-					if (!Number.isFinite(parsed)) {
-						return;
-					}
-
-					this.plugin.settings[entry.key] = clamp(parsed, entry.min, entry.max);
-					await this.plugin.saveSettings();
-				});
-
-				text.inputEl.addEventListener('blur', () => {
-					text.setValue(String(this.plugin.settings[entry.key]));
-					this.plugin.refreshViews();
-				});
-
-				text.inputEl.addEventListener('keydown', (event) => {
-					if (event.key === 'Enter') {
-						text.inputEl.blur();
-					}
-				});
-			});
-	}
-
-	private async updateSetting<K extends keyof CodeBlockProSettings>(
-		key: K,
-		value: CodeBlockProSettings[K],
-	): Promise<void> {
-		this.plugin.settings[key] = value;
 		await this.plugin.saveSettings();
 		this.plugin.refreshViews();
 	}

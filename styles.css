@@ -477,10 +477,6 @@
 
 /* Responsive -------------------------------------------------------------- */
 
-input.cbp-settings-number {
-	width: 6em;
-}
-
 @media (pointer: coarse) {
 	.cbp-toolbar {
 		padding: var(--size-4-2) var(--size-4-3);

@@ -73,7 +73,7 @@ be disabled independently.
   independently.
 - Mermaid, Dataview, and DataviewJS blocks are left to their own processors.
 
-Requires Obsidian 1.5.0 or later.
+Requires Obsidian 1.13.0 or later.
 
 ## Installation
 

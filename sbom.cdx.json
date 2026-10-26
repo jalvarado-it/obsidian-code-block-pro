@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:fdb73b18-88ba-4d52-ad80-9ec34ad13d1f",
+  "serialNumber": "urn:uuid:bc84fffc-232e-4c5b-9a0b-302d2d400b99",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-10-26T07:10:03.931Z",
+    "timestamp": "2026-10-26T07:18:29.763Z",
     "lifecycles": [
       {
         "phase": "pre-build"
@@ -19,14 +19,14 @@
       }
     ],
     "component": {
-      "bom-ref": "code-block-pro@0.8.1",
+      "bom-ref": "code-block-pro@0.8.2",
       "type": "application",
       "name": "obsidian-code-block-pro",
-      "version": "0.8.1",
+      "version": "0.8.2",
       "scope": "required",
       "author": "Jesus Alvarado",
       "description": "Enhance fenced code blocks with titles, copy/download actions, line numbers, and collapsible headers.",
-      "purl": "pkg:npm/code-block-pro@0.8.1",
+      "purl": "pkg:npm/code-block-pro@0.8.2",
       "properties": [],
       "externalReferences": [],
       "licenses": [
@@ -13473,7 +13473,7 @@
   ],
   "dependencies": [
     {
-      "ref": "code-block-pro@0.8.1",
+      "ref": "code-block-pro@0.8.2",
       "dependsOn": [
         "@codemirror/state@6.7.6",
         "@codemirror/view@6.43.13",
