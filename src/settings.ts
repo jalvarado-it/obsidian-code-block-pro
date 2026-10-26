@@ -1,5 +1,5 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
-import type { SettingDefinitionItem } from 'obsidian';
+import type { SettingDefinition, SettingDefinitionItem } from 'obsidian';
 import type CodeBlockProPlugin from './main';
 
 const MIN_LINE_SETTING = 1;
@@ -30,6 +30,34 @@ export const DEFAULT_SETTINGS: CodeBlockProSettings = {
 	showLanguageLabel: true,
 	showBlockTitle: true,
 };
+
+type ToggleSettingKey =
+	| 'showLineNumbers'
+	| 'showCopyButton'
+	| 'showDownloadButton'
+	| 'showLanguageLabel'
+	| 'showBlockTitle';
+
+type NumberSettingKey = 'collapseAfterLines' | 'collapsedLines' | 'scrollAfterLines';
+
+interface ToggleSettingMetadata {
+	type: 'toggle';
+	key: ToggleSettingKey;
+	name: string;
+	desc: string;
+}
+
+interface NumberSettingMetadata {
+	type: 'number';
+	key: NumberSettingKey;
+	name: string;
+	desc: string;
+	min: number;
+	max: number;
+	validate: (value: number) => string | void;
+}
+
+type SettingMetadata = ToggleSettingMetadata | NumberSettingMetadata;
 
 /**
  * Load only known settings with validated types and ranges.
@@ -91,26 +119,110 @@ function clamp(value: number, min: number, max: number): number {
 	return Math.min(max, Math.max(min, value));
 }
 
-function validateLineSetting(value: number): string | void {
-	if (
-		!Number.isFinite(value) ||
-		!Number.isInteger(value) ||
-		value < MIN_LINE_SETTING ||
-		value > MAX_LINE_SETTING
-	) {
-		return `Enter a whole number between ${MIN_LINE_SETTING} and ${MAX_LINE_SETTING}.`;
-	}
+function validateRange(min: number, max: number): (value: number) => string | void {
+	return (value) => {
+		if (
+			!Number.isFinite(value) ||
+			!Number.isInteger(value) ||
+			value < min ||
+			value > max
+		) {
+			return `Enter a whole number between ${min} and ${max}.`;
+		}
+
+		return;
+	};
 }
 
-function validateScrollSetting(value: number): string | void {
-	if (
-		!Number.isFinite(value) ||
-		!Number.isInteger(value) ||
-		value < MIN_SCROLL_SETTING ||
-		value > MAX_LINE_SETTING
-	) {
-		return `Enter a whole number between ${MIN_SCROLL_SETTING} and ${MAX_LINE_SETTING}.`;
+const validateLineSetting = validateRange(MIN_LINE_SETTING, MAX_LINE_SETTING);
+const validateScrollSetting = validateRange(MIN_SCROLL_SETTING, MAX_LINE_SETTING);
+
+const SETTING_METADATA: readonly SettingMetadata[] = [
+	{
+		type: 'toggle',
+		key: 'showLineNumbers',
+		name: 'Line numbers',
+		desc: 'Show line numbers next to each code block.',
+	},
+	{
+		type: 'number',
+		key: 'collapseAfterLines',
+		name: 'Collapse after lines',
+		desc: 'Show the collapse control for blocks with more lines than this.',
+		min: MIN_LINE_SETTING,
+		max: MAX_LINE_SETTING,
+		validate: validateLineSetting,
+	},
+	{
+		type: 'number',
+		key: 'collapsedLines',
+		name: 'Collapsed lines',
+		desc: 'Number of code lines visible while a block is collapsed.',
+		min: MIN_LINE_SETTING,
+		max: MAX_LINE_SETTING,
+		validate: validateLineSetting,
+	},
+	{
+		type: 'number',
+		key: 'scrollAfterLines',
+		name: 'Scroll after lines',
+		desc: 'Add a vertical scrollbar after this many lines. 0 disables it.',
+		min: MIN_SCROLL_SETTING,
+		max: MAX_LINE_SETTING,
+		validate: validateScrollSetting,
+	},
+	{
+		type: 'toggle',
+		key: 'showCopyButton',
+		name: 'Copy button',
+		desc: 'Add a button to copy the code block to the clipboard.',
+	},
+	{
+		type: 'toggle',
+		key: 'showDownloadButton',
+		name: 'Download button',
+		desc: 'Add a button to download the code block as a file.',
+	},
+	{
+		type: 'toggle',
+		key: 'showLanguageLabel',
+		name: 'Language label',
+		desc: 'Show the language declared in the code fence.',
+	},
+	{
+		type: 'toggle',
+		key: 'showBlockTitle',
+		name: 'Block title',
+		desc: 'Show the text after the language in the code fence as the block title.',
+	},
+];
+
+function toSettingDefinition(entry: SettingMetadata): SettingDefinition {
+	if (entry.type === 'toggle') {
+		return {
+			name: entry.name,
+			desc: entry.desc,
+			control: {
+				type: 'toggle',
+				key: entry.key,
+				defaultValue: DEFAULT_SETTINGS[entry.key],
+			},
+		};
 	}
+
+	return {
+		name: entry.name,
+		desc: entry.desc,
+		control: {
+			type: 'number',
+			key: entry.key,
+			defaultValue: DEFAULT_SETTINGS[entry.key],
+			min: entry.min,
+			max: entry.max,
+			step: 1,
+			validate: entry.validate,
+		},
+	};
 }
 
 export class SettingTab extends PluginSettingTab {
@@ -132,72 +244,20 @@ export class SettingTab extends PluginSettingTab {
 
 		new Setting(containerEl).setName('Appearance').setHeading();
 
-		new Setting(containerEl)
-			.setName('Line numbers')
-			.setDesc('Show line numbers next to each code block.')
-			.addToggle((toggle) =>
-				toggle.setValue(this.plugin.settings.showLineNumbers).onChange(async (value) => {
-					await this.updateSetting('showLineNumbers', value);
-				}),
-			);
-
-		this.addNumberSetting(
-			containerEl,
-			'collapseAfterLines',
-			'Collapse after lines',
-			'Show the collapse control for blocks with more lines than this.',
-		);
-
-		this.addNumberSetting(
-			containerEl,
-			'collapsedLines',
-			'Collapsed lines',
-			'Number of code lines visible while a block is collapsed.',
-		);
-
-		this.addNumberSetting(
-			containerEl,
-			'scrollAfterLines',
-			'Scroll after lines',
-			'Add a vertical scrollbar after this many lines. 0 disables it.',
-			MIN_SCROLL_SETTING,
-		);
-
-		new Setting(containerEl)
-			.setName('Copy button')
-			.setDesc('Add a button to copy the code block to the clipboard.')
-			.addToggle((toggle) =>
-				toggle.setValue(this.plugin.settings.showCopyButton).onChange(async (value) => {
-					await this.updateSetting('showCopyButton', value);
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName('Download button')
-			.setDesc('Add a button to download the code block as a file.')
-			.addToggle((toggle) =>
-				toggle.setValue(this.plugin.settings.showDownloadButton).onChange(async (value) => {
-					await this.updateSetting('showDownloadButton', value);
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName('Language label')
-			.setDesc('Show the language declared in the code fence.')
-			.addToggle((toggle) =>
-				toggle.setValue(this.plugin.settings.showLanguageLabel).onChange(async (value) => {
-					await this.updateSetting('showLanguageLabel', value);
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName('Block title')
-			.setDesc('Show the text after the language in the code fence as the block title.')
-			.addToggle((toggle) =>
-				toggle.setValue(this.plugin.settings.showBlockTitle).onChange(async (value) => {
-					await this.updateSetting('showBlockTitle', value);
-				}),
-			);
+		for (const entry of SETTING_METADATA) {
+			if (entry.type === 'toggle') {
+				new Setting(containerEl)
+					.setName(entry.name)
+					.setDesc(entry.desc)
+					.addToggle((toggle) =>
+						toggle.setValue(this.plugin.settings[entry.key]).onChange(async (value) => {
+							await this.updateSetting(entry.key, value);
+						}),
+					);
+			} else {
+				this.addNumberSetting(containerEl, entry);
+			}
+		}
 	}
 
 	/**
@@ -209,102 +269,25 @@ export class SettingTab extends PluginSettingTab {
 			{
 				type: 'group',
 				heading: 'Appearance',
-				items: [
-					{
-						name: 'Line numbers',
-						desc: 'Show line numbers next to each code block.',
-						control: {
-							type: 'toggle',
-							key: 'showLineNumbers',
-							defaultValue: DEFAULT_SETTINGS.showLineNumbers,
-						},
-					},
-					{
-						name: 'Collapse after lines',
-						desc: 'Show the collapse control for blocks with more lines than this.',
-						control: {
-							type: 'number',
-							key: 'collapseAfterLines',
-							defaultValue: DEFAULT_SETTINGS.collapseAfterLines,
-							min: MIN_LINE_SETTING,
-							max: MAX_LINE_SETTING,
-							step: 1,
-							validate: validateLineSetting,
-						},
-					},
-					{
-						name: 'Collapsed lines',
-						desc: 'Number of code lines visible while a block is collapsed.',
-						control: {
-							type: 'number',
-							key: 'collapsedLines',
-							defaultValue: DEFAULT_SETTINGS.collapsedLines,
-							min: MIN_LINE_SETTING,
-							max: MAX_LINE_SETTING,
-							step: 1,
-							validate: validateLineSetting,
-						},
-					},
-					{
-						name: 'Scroll after lines',
-						desc: 'Add a vertical scrollbar after this many lines. 0 disables it.',
-						control: {
-							type: 'number',
-							key: 'scrollAfterLines',
-							defaultValue: DEFAULT_SETTINGS.scrollAfterLines,
-							min: MIN_SCROLL_SETTING,
-							max: MAX_LINE_SETTING,
-							step: 1,
-							validate: validateScrollSetting,
-						},
-					},
-					{
-						name: 'Copy button',
-						desc: 'Add a button to copy the code block to the clipboard.',
-						control: {
-							type: 'toggle',
-							key: 'showCopyButton',
-							defaultValue: DEFAULT_SETTINGS.showCopyButton,
-						},
-					},
-					{
-						name: 'Download button',
-						desc: 'Add a button to download the code block as a file.',
-						control: {
-							type: 'toggle',
-							key: 'showDownloadButton',
-							defaultValue: DEFAULT_SETTINGS.showDownloadButton,
-						},
-					},
-					{
-						name: 'Language label',
-						desc: 'Show the language declared in the code fence.',
-						control: {
-							type: 'toggle',
-							key: 'showLanguageLabel',
-							defaultValue: DEFAULT_SETTINGS.showLanguageLabel,
-						},
-					},
-					{
-						name: 'Block title',
-						desc: 'Show the text after the language in the code fence as the block title.',
-						control: {
-							type: 'toggle',
-							key: 'showBlockTitle',
-							defaultValue: DEFAULT_SETTINGS.showBlockTitle,
-						},
-					},
-				],
+				items: SETTING_METADATA.map(toSettingDefinition),
 			},
 		];
 	}
 
 	async setControlValue(key: string, value: unknown): Promise<void> {
-		if (
-			key === 'collapseAfterLines' ||
-			key === 'collapsedLines' ||
-			key === 'scrollAfterLines'
-		) {
+		const entry = SETTING_METADATA.find((item) => item.key === key);
+
+		if (!entry) {
+			return;
+		}
+
+		if (entry.type === 'toggle') {
+			if (typeof value !== 'boolean') {
+				return;
+			}
+
+			this.plugin.settings[entry.key] = value;
+		} else {
 			const numeric =
 				typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : Number.NaN;
 
@@ -312,51 +295,25 @@ export class SettingTab extends PluginSettingTab {
 				return;
 			}
 
-			const min = key === 'scrollAfterLines' ? MIN_SCROLL_SETTING : MIN_LINE_SETTING;
-
-			this.plugin.settings[key] = clamp(Math.round(numeric), min, MAX_LINE_SETTING);
-			await this.plugin.saveSettings();
-			this.plugin.refreshViews();
-			return;
+			this.plugin.settings[entry.key] = clamp(Math.round(numeric), entry.min, entry.max);
 		}
 
-		if (
-			key !== 'showLineNumbers' &&
-			key !== 'showCopyButton' &&
-			key !== 'showDownloadButton' &&
-			key !== 'showLanguageLabel' &&
-			key !== 'showBlockTitle'
-		) {
-			return;
-		}
-
-		if (typeof value !== 'boolean') {
-			return;
-		}
-
-		this.plugin.settings[key] = value;
 		await this.plugin.saveSettings();
 		this.plugin.refreshViews();
 	}
 
-	private addNumberSetting(
-		containerEl: HTMLElement,
-		key: 'collapseAfterLines' | 'collapsedLines' | 'scrollAfterLines',
-		name: string,
-		desc: string,
-		min: number = MIN_LINE_SETTING,
-	): void {
+	private addNumberSetting(containerEl: HTMLElement, entry: NumberSettingMetadata): void {
 		new Setting(containerEl)
-			.setName(name)
-			.setDesc(desc)
+			.setName(entry.name)
+			.setDesc(entry.desc)
 			.addText((text) => {
 				text.inputEl.type = 'number';
-				text.inputEl.min = String(min);
-				text.inputEl.max = String(MAX_LINE_SETTING);
+				text.inputEl.min = String(entry.min);
+				text.inputEl.max = String(entry.max);
 				text.inputEl.step = '1';
 				text.inputEl.addClass('cbp-settings-number');
-				text.inputEl.setAttribute('aria-label', name);
-				text.setValue(String(this.plugin.settings[key]));
+				text.inputEl.setAttribute('aria-label', entry.name);
+				text.setValue(String(this.plugin.settings[entry.key]));
 
 				text.onChange(async (value) => {
 					const parsed = Number.parseInt(value, 10);
@@ -365,16 +322,12 @@ export class SettingTab extends PluginSettingTab {
 						return;
 					}
 
-					this.plugin.settings[key] = clamp(
-						parsed,
-						min,
-						MAX_LINE_SETTING,
-					);
+					this.plugin.settings[entry.key] = clamp(parsed, entry.min, entry.max);
 					await this.plugin.saveSettings();
 				});
 
 				text.inputEl.addEventListener('blur', () => {
-					text.setValue(String(this.plugin.settings[key]));
+					text.setValue(String(this.plugin.settings[entry.key]));
 					this.plugin.refreshViews();
 				});
 
